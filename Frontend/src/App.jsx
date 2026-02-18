@@ -12,32 +12,45 @@ import Favorites from './pages/Favorites';
 import MyListings from './pages/MyListings';
 import EditListing from './pages/EditListing';
 import Inbox from './pages/Inbox';
+import CompareListings from './pages/CompareListings';
+import OwnerLeadCRM from './pages/OwnerLeadCRM';
+import AdminUserEdit from './pages/AdminUserEdit';
 import { AuthProvider } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
 import { Toaster } from 'react-hot-toast';
+
+import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
   return (
-    <AuthProvider>
-      <Router>
-        <Layout>
-          <Toaster position="top-center" toastOptions={{ duration: 3000 }} />
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/browse" element={<Browse />} />
-            <Route path="/listings/:id" element={<ListingDetail />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/admin" element={<AdminDashboard />} />
-            <Route path="/post-ad" element={<PostAd />} />
-            <Route path="/favorites" element={<Favorites />} />
-            <Route path="/my-listings" element={<MyListings />} />
-            <Route path="/edit-listing/:id" element={<EditListing />} />
-            <Route path="/inbox" element={<Inbox />} />
-          </Routes>
-        </Layout>
-      </Router>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <Router>
+          <Layout>
+            <Toaster position="top-center" toastOptions={{ duration: 3000 }} />
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/browse" element={<Browse />} />
+              <Route path="/listings/:id" element={<ListingDetail />} />
+              <Route path="/compare" element={<CompareListings />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+
+              {/* Protected Routes */}
+              <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+              <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
+              <Route path="/post-ad" element={<ProtectedRoute><PostAd /></ProtectedRoute>} />
+              <Route path="/favorites" element={<ProtectedRoute><Favorites /></ProtectedRoute>} />
+              <Route path="/my-listings" element={<ProtectedRoute><MyListings /></ProtectedRoute>} />
+              <Route path="/edit-listing/:id" element={<ProtectedRoute><EditListing /></ProtectedRoute>} />
+              <Route path="/inbox" element={<ProtectedRoute><Inbox /></ProtectedRoute>} />
+              <Route path="/owner/leads" element={<ProtectedRoute><OwnerLeadCRM /></ProtectedRoute>} />
+              <Route path="/admin/users/:id" element={<ProtectedRoute><AdminUserEdit /></ProtectedRoute>} />
+            </Routes>
+          </Layout>
+        </Router>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 

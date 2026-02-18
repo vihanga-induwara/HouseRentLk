@@ -35,7 +35,7 @@ const Favorites = () => {
     const removeFavorite = async (listingId) => {
         try {
             await API.delete(`/favorites/${listingId}`);
-            setFavorites(favorites.filter(fav => fav.listingId._id !== listingId));
+            setFavorites(favorites.filter(fav => fav.listingId?._id !== listingId));
             toast.success('Removed from favorites');
         } catch (error) {
             console.error('Error removing favorite:', error);

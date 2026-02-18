@@ -2,28 +2,33 @@ const asyncHandler = require('express-async-handler');
 const User = require('../models/User');
 const { createNotification } = require('./notificationController');
 
-// @desc    Submit NIC for verification
+// @desc    Submit verification documents
 // @route   POST /api/verification/submit
 // @access  Private
 const submitVerification = asyncHandler(async (req, res) => {
-    const { nicFront, nicBack } = req.body;
+    const { docs } = req.body; // Array of { type, url }
 
-    if (!nicFront || !nicBack) {
+    if (!docs || !Array.isArray(docs) || docs.length === 0) {
         res.status(400);
-        throw new Error('Please upload both front and back of NIC');
+        throw new Error('Please upload at least one verification document');
     }
 
     const user = await User.findById(req.user.id);
 
-    user.verification = {
-        status: 'pending',
-        nicFront,
-        nicBack,
-        message: 'Under review by admin',
-    };
+    user.verificationStatus = 'pending';
+    user.verificationDocs = docs.map(doc => ({
+        type: doc.type,
+        url: doc.url,
+        status: 'pending'
+    }));
+    user.verificationMessage = 'Under review by admin';
 
     await user.save();
-    res.status(200).json(user.verification);
+    res.status(200).json({
+        status: user.verificationStatus,
+        docs: user.verificationDocs,
+        message: user.verificationMessage
+    });
 });
 
 // @desc    Get user verification status
@@ -31,15 +36,20 @@ const submitVerification = asyncHandler(async (req, res) => {
 // @access  Private
 const getVerificationStatus = asyncHandler(async (req, res) => {
     const user = await User.findById(req.user.id);
-    res.status(200).json(user.verification);
+    res.status(200).json({
+        status: user.verificationStatus,
+        docs: user.verificationDocs,
+        message: user.verificationMessage,
+        verifiedAt: user.verifiedAt
+    });
 });
 
 // @desc    Get all pending verifications (Admin)
 // @route   GET /api/verification/admin/pending
 // @access  Private/Admin
 const getPendingVerifications = asyncHandler(async (req, res) => {
-    const users = await User.find({ 'verification.status': 'pending' })
-        .select('name email phone verification');
+    const users = await User.find({ verificationStatus: 'pending' })
+        .select('name email phone verificationStatus verificationDocs');
     res.status(200).json(users);
 });
 
@@ -47,11 +57,11 @@ const getPendingVerifications = asyncHandler(async (req, res) => {
 // @route   PUT /api/verification/admin/:userId
 // @access  Private/Admin
 const reviewVerification = asyncHandler(async (req, res) => {
-    const { status, message } = req.body; // approved, rejected, re_requested
+    const { status, message } = req.body; // verified, rejected
 
-    if (!['approved', 'rejected'].includes(status)) {
+    if (!['verified', 'rejected'].includes(status)) {
         res.status(400);
-        throw new Error('Invalid status');
+        throw new Error('Invalid status. Use "verified" or "rejected".');
     }
 
     const user = await User.findById(req.params.userId);
@@ -61,14 +71,22 @@ const reviewVerification = asyncHandler(async (req, res) => {
         throw new Error('User not found');
     }
 
-    user.verification.status = status;
-    user.verification.message = message || (status === 'approved' ? 'Identity verified successfully' : 'Verification rejected');
+    user.verificationStatus = status;
+    user.verificationMessage = message || (status === 'verified' ? 'Identity verified successfully' : 'Verification rejected');
 
-    if (status === 'approved') {
-        user.verification.verifiedAt = Date.now();
+    if (status === 'verified') {
+        user.verifiedAt = Date.now();
         user.isVerified = true;
+        // Also approve all pending docs
+        user.verificationDocs.forEach(doc => {
+            if (doc.status === 'pending') doc.status = 'approved';
+        });
     } else {
         user.isVerified = false;
+        // Optionally mark docs as rejected
+        user.verificationDocs.forEach(doc => {
+            if (doc.status === 'pending') doc.status = 'rejected';
+        });
     }
 
     await user.save();
@@ -76,13 +94,16 @@ const reviewVerification = asyncHandler(async (req, res) => {
     // Notify user
     await createNotification({
         userId: user._id,
-        type: status === 'approved' ? 'verification_approved' : 'verification_rejected',
-        title: status === 'approved' ? 'Identity Verified! ✅' : 'Verification Update',
-        message: user.verification.message,
+        type: status === 'verified' ? 'verification_approved' : 'verification_rejected',
+        title: status === 'verified' ? 'Identity Verified! ✅' : 'Verification Update',
+        message: user.verificationMessage,
         link: '/profile',
     });
 
-    res.status(200).json(user.verification);
+    res.status(200).json({
+        status: user.verificationStatus,
+        message: user.verificationMessage
+    });
 });
 
 module.exports = {

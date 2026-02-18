@@ -1,9 +1,10 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Home, User, LogOut, Heart, List, MessageSquare } from 'lucide-react';
+import { Menu, X, Home, User, LogOut, Heart, List, MessageSquare, Users } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import Button from './Button';
 import { useAuth } from '../context/AuthContext';
 import NotificationBell from './NotificationBell';
+import ThemeToggle from './ThemeToggle';
 
 const Navbar = () => {
     const [isOpen, setIsOpen] = useState(false);
@@ -57,6 +58,7 @@ const Navbar = () => {
 
                     {/* Auth Buttons */}
                     <div className="hidden md:flex items-center space-x-4">
+                        <ThemeToggle />
                         {user ? (
                             <div className="flex items-center gap-4">
                                 <span className="text-sm font-medium text-slate-700">
@@ -77,6 +79,12 @@ const Navbar = () => {
                                     <Button size="sm" variant="outline" className="rounded-full px-4 border-slate-200">
                                         <List className="h-4 w-4 mr-2" />
                                         My Listings
+                                    </Button>
+                                </Link>
+                                <Link to="/owner/leads">
+                                    <Button size="sm" variant="outline" className="rounded-full px-4 border-slate-200">
+                                        <Users className="h-4 w-4 mr-2" />
+                                        Leads
                                     </Button>
                                 </Link>
                                 <Link to="/inbox">
@@ -145,6 +153,10 @@ const Navbar = () => {
                             {link.name}
                         </Link>
                     ))}
+                    <div className="flex items-center justify-between px-2">
+                        <span className="text-sm font-medium text-slate-500">Theme</span>
+                        <ThemeToggle />
+                    </div>
                     <div className="h-px bg-gray-100 my-2"></div>
 
                     {user ? (
@@ -155,6 +167,11 @@ const Navbar = () => {
                             <Link to="/my-listings" onClick={() => setIsOpen(false)}>
                                 <Button variant="outline" className="w-full justify-center rounded-xl border-slate-200">
                                     <List className="h-4 w-4 mr-2" /> My Listings
+                                </Button>
+                            </Link>
+                            <Link to="/owner/leads" onClick={() => setIsOpen(false)}>
+                                <Button variant="outline" className="w-full justify-center rounded-xl border-slate-200">
+                                    <Users className="h-4 w-4 mr-2" /> Leads
                                 </Button>
                             </Link>
                             <Button

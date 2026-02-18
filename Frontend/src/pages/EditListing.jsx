@@ -101,7 +101,7 @@ const EditListing = () => {
                     availableVisits: data.availableVisits || [],
                 });
                 setExistingImages(data.images || []);
-            } catch (err) {
+            } catch (error) {
                 toast.error('Failed to load listing');
                 navigate('/my-listings');
             } finally {
@@ -215,8 +215,8 @@ const EditListing = () => {
             await API.put(`/listings/${id}`, updateData);
             toast.success('Listing updated! It will be reviewed again.');
             navigate('/my-listings');
-        } catch (err) {
-            toast.error(err.response?.data?.message || 'Failed to update listing');
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Failed to update listing');
         } finally {
             setSaving(false);
         }
@@ -361,6 +361,19 @@ const EditListing = () => {
                                     value={formData.virtualTourUrl}
                                     onChange={(e) => setFormData(prev => ({ ...prev, virtualTourUrl: e.target.value }))}
                                 />
+                                {formData.virtualTourUrl && (
+                                    <div className="mt-4">
+                                        <p className="text-[10px] font-bold text-slate-500 uppercase mb-2">Tour Preview</p>
+                                        <div className="aspect-video rounded-xl overflow-hidden border border-slate-200 bg-slate-100 relative">
+                                            <iframe
+                                                src={formData.virtualTourUrl.replace('watch?v=', 'embed/')}
+                                                className="w-full h-full border-0"
+                                                allowFullScreen
+                                                title="360 Preview"
+                                            ></iframe>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}

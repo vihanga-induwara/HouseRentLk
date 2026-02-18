@@ -1,4 +1,6 @@
 const asyncHandler = require('express-async-handler');
+const fs = require('fs');
+const csv = require('csv-parser');
 const Listing = require('../models/Listing');
 const Favorite = require('../models/Favorite');
 const Inquiry = require('../models/Inquiry');
@@ -8,16 +10,74 @@ const { createNotification } = require('./notificationController');
 // @route   GET /api/listings
 // @access  Public
 const getListings = asyncHandler(async (req, res) => {
-    // Only show approved listings that haven't expired
-    const listings = await Listing.find({
+    const {
+        town,
+        minPrice,
+        maxPrice,
+        beds,
+        type,
+        furnished,
+        solarPower,
+        ac,
+        parking,
+        wifi,
+        garden,
+        sort,
+        page = 1,
+        limit = 12
+    } = req.query;
+
+    const query = {
         status: 'approved',
         $or: [
             { expiresAt: { $gt: new Date() } },
             { expiresAt: { $exists: false } },
             { expiresAt: null }
         ]
-    }).populate('owner', 'name email phone avatar');
-    res.status(200).json(listings);
+    };
+
+    // Advanced Filtering
+    if (town) query['location.town'] = { $regex: town, $options: 'i' };
+    if (minPrice || maxPrice) {
+        query.price = {};
+        if (minPrice) query.price.$gte = Number(minPrice);
+        if (maxPrice) query.price.$lte = Number(maxPrice);
+    }
+    if (beds) query.beds = beds === '4+' ? { $gte: 4 } : Number(beds);
+    if (type && type !== 'Any') query.type = type;
+    if (furnished && furnished !== 'Any') query.furnished = furnished;
+
+    // Amenities
+    const amenities = ['solarPower', 'ac', 'parking', 'wifi', 'garden'];
+    amenities.forEach(amenity => {
+        if (req.query[amenity] === 'true') {
+            query[`amenities.${amenity}`] = true;
+        }
+    });
+
+    // Pagination & Sorting
+    const skip = (Number(page) - 1) * Number(limit);
+    let sortQuery = { createdAt: -1 }; // Default: Newest
+
+    if (sort === 'price_asc') sortQuery = { price: 1 };
+    if (sort === 'price_desc') sortQuery = { price: -1 };
+    if (sort === 'views') sortQuery = { views: -1 };
+
+    const listings = await Listing.find(query)
+        .populate('owner', 'name email phone avatar')
+        .sort(sortQuery)
+        .skip(skip)
+        .limit(Number(limit));
+
+    const total = await Listing.countDocuments(query);
+
+    res.status(200).json({
+        success: true,
+        count: listings.length,
+        total,
+        pages: Math.ceil(total / Number(limit)),
+        data: listings
+    });
 });
 
 // @desc    Get single listing
@@ -382,6 +442,69 @@ const duplicateListing = asyncHandler(async (req, res) => {
     res.status(201).json(duplicated);
 });
 
+// @desc    Bulk upload listings from CSV
+// @route   POST /api/listings/bulk-upload
+// @access  Private (Owner/Admin)
+const bulkUploadListings = asyncHandler(async (req, res) => {
+    if (!req.file) {
+        res.status(400);
+        throw new Error('Please upload a CSV file');
+    }
+
+    const listings = [];
+    const results = {
+        success: 0,
+        errors: 0,
+        failedRows: []
+    };
+
+    fs.createReadStream(req.file.path)
+        .pipe(csv())
+        .on('data', (row) => {
+            try {
+                // Basic mapping and validation
+                if (!row.title || !row.price) return;
+
+                listings.push({
+                    title: row.title,
+                    type: row.type || 'House',
+                    price: Number(row.price),
+                    description: row.description || '',
+                    beds: Number(row.beds) || 1,
+                    baths: Number(row.baths) || 1,
+                    size: row.size || '1000 sqft',
+                    location: {
+                        town: row.town || 'Unknown',
+                        address: row.address || ''
+                    },
+                    owner: req.user.id,
+                    status: 'pending',
+                    amenities: {
+                        parking: row.parking === 'true',
+                        wifi: row.wifi === 'true',
+                        furnished: row.furnished === 'true'
+                    }
+                });
+            } catch (err) {
+                results.errors++;
+            }
+        })
+        .on('end', async () => {
+            try {
+                if (listings.length > 0) {
+                    const created = await Listing.insertMany(listings);
+                    results.success = created.length;
+                }
+                // Cleanup file
+                fs.unlinkSync(req.file.path);
+                res.status(201).json(results);
+            } catch (err) {
+                res.status(500);
+                throw new Error('Batch insert failed: ' + err.message);
+            }
+        });
+});
+
 module.exports = {
     getListings,
     getListing,
@@ -396,4 +519,5 @@ module.exports = {
     getListingAnalytics,
     duplicateListing,
     getMarketInsights,
+    bulkUploadListings,
 };

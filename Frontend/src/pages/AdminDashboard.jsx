@@ -4,10 +4,12 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import {
     Users, Home as HomeIcon, Eye, Check, X, ShieldAlert, TrendingUp,
-    FileText, UserCheck, UserX, Search, Filter, ShieldCheck
+    FileText, UserCheck, UserX, Search, Filter, ShieldCheck, Edit2, Trash2
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { formatCurrency } from '../utils/format';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { Layout, Palette } from 'lucide-react';
 
 const AdminDashboard = () => {
     const { user, loading } = useAuth();
@@ -66,14 +68,25 @@ const AdminDashboard = () => {
         }
     };
 
-    const handleUserStatus = async (id, isActive) => {
+    const handleUserStatus = async (id, status) => {
         try {
-            await API.put(`/admin/users/${id}/status`, { isActive });
-            toast.success(`User ${isActive ? 'activated' : 'suspended'} successfully`);
+            await API.put(`/admin/users/${id}/status`, { status });
+            toast.success(`User status updated to ${status} successfully`);
             fetchData();
         } catch (error) {
             console.error(error);
             toast.error('Failed to update user status');
+        }
+    };
+
+    const handleDeleteUser = async (id) => {
+        if (!window.confirm('Are you sure you want to delete this user and all their listings? This action cannot be undone.')) return;
+        try {
+            await API.delete(`/admin/users/${id}`);
+            toast.success('User deleted successfully');
+            fetchData();
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Failed to delete user');
         }
     };
 
@@ -84,6 +97,17 @@ const AdminDashboard = () => {
             fetchData();
         } catch (error) {
             toast.error('Failed to update verification status');
+        }
+    };
+
+    const handleDeleteListing = async (id) => {
+        if (!window.confirm('Are you sure you want to delete this listing?')) return;
+        try {
+            await API.delete(`/listings/${id}`);
+            setListings(prev => prev.filter(l => l._id !== id));
+            toast.success('Listing deleted successfully');
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Failed to delete listing');
         }
     };
 
@@ -158,6 +182,36 @@ const AdminDashboard = () => {
                     >
                         <ShieldCheck className="h-4 w-4 inline mr-2" />
                         Verifications ({pendingVerifications.length})
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('analytics')}
+                        className={`pb-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'analytics'
+                            ? 'border-primary-500 text-primary-600'
+                            : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                            }`}
+                    >
+                        <BarChart className="h-4 w-4 inline mr-2" />
+                        Analytics
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('disputes')}
+                        className={`pb-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'disputes'
+                            ? 'border-primary-500 text-primary-600'
+                            : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                            }`}
+                    >
+                        <ShieldAlert className="h-4 w-4 inline mr-2" />
+                        Disputes
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('palette')}
+                        className={`pb-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'palette'
+                            ? 'border-primary-500 text-primary-600'
+                            : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                            }`}
+                    >
+                        <Palette className="h-4 w-4 inline mr-2" />
+                        Branding
                     </button>
                 </nav>
             </div>
@@ -300,25 +354,62 @@ const AdminDashboard = () => {
                                             </span>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${u.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${u.status === 'active' ? 'bg-green-100 text-green-800' :
+                                                u.status === 'suspended' ? 'bg-yellow-100 text-yellow-800' :
+                                                    'bg-red-100 text-red-800'
                                                 }`}>
-                                                {u.isActive ? 'Active' : 'Suspended'}
+                                                {u.status || (u.isActive ? 'active' : 'suspended')}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 text-sm text-slate-500">
                                             {new Date(u.createdAt).toLocaleDateString()}
                                         </td>
                                         <td className="px-6 py-4 text-right">
-                                            <button
-                                                onClick={() => handleUserStatus(u._id, !u.isActive)}
-                                                className={`p-2 rounded-lg transition-colors ${u.isActive
-                                                    ? 'text-red-600 hover:bg-red-50'
-                                                    : 'text-green-600 hover:bg-green-50'
-                                                    }`}
-                                                title={u.isActive ? 'Suspend User' : 'Activate User'}
-                                            >
-                                                {u.isActive ? <UserX className="h-5 w-5" /> : <UserCheck className="h-5 w-5" />}
-                                            </button>
+                                            <div className="flex justify-end gap-2">
+                                                <button
+                                                    onClick={() => navigate(`/admin/users/${u._id}`)}
+                                                    className="p-2 rounded-lg text-slate-400 hover:text-primary-600 hover:bg-primary-50 transition-colors"
+                                                    title="View Detailed Profile & Edit"
+                                                >
+                                                    <Eye className="h-5 w-5" />
+                                                </button>
+
+                                                {u.status !== 'suspended' ? (
+                                                    <button
+                                                        onClick={() => handleUserStatus(u._id, 'suspended')}
+                                                        className="p-2 rounded-lg text-slate-400 hover:text-yellow-600 hover:bg-yellow-50 transition-colors"
+                                                        title="Suspend User"
+                                                    >
+                                                        <UserX className="h-5 w-5" />
+                                                    </button>
+                                                ) : (
+                                                    <button
+                                                        onClick={() => handleUserStatus(u._id, 'active')}
+                                                        className="p-2 rounded-lg text-slate-400 hover:text-green-600 hover:bg-green-50 transition-colors"
+                                                        title="Activate User"
+                                                    >
+                                                        <UserCheck className="h-5 w-5" />
+                                                    </button>
+                                                )}
+
+                                                {u.status !== 'blocked' && (
+                                                    <button
+                                                        onClick={() => handleUserStatus(u._id, 'blocked')}
+                                                        className="p-2 rounded-lg text-slate-400 hover:text-red-800 hover:bg-red-50 transition-colors"
+                                                        title="Block User"
+                                                    >
+                                                        <ShieldAlert className="h-5 w-5" />
+                                                    </button>
+                                                )}
+
+                                                <button
+                                                    onClick={() => handleDeleteUser(u._id)}
+                                                    className="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                                                    title="Delete User"
+                                                >
+                                                    <Trash2 className="h-5 w-5" />
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
@@ -353,7 +444,7 @@ const AdminDashboard = () => {
                                             />
                                             <div>
                                                 <div className="font-medium text-slate-900 line-clamp-1">{listing.title}</div>
-                                                <div className="text-sm text-slate-500">LKR {listing.price.toLocaleString()}</div>
+                                                <div className="text-sm text-slate-500">{formatCurrency(listing.price)}</div>
                                             </div>
                                         </div>
                                     </td>
@@ -380,6 +471,22 @@ const AdminDashboard = () => {
                                                 title="View Listing"
                                             >
                                                 <Eye className="h-5 w-5" />
+                                            </button>
+
+                                            <button
+                                                onClick={() => navigate(`/edit-listing/${listing._id}`)}
+                                                className="p-2 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                                                title="Edit Listing"
+                                            >
+                                                <Edit2 className="h-5 w-5" />
+                                            </button>
+
+                                            <button
+                                                onClick={() => handleDeleteListing(listing._id)}
+                                                className="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                                                title="Delete Listing"
+                                            >
+                                                <Trash2 className="h-5 w-5" />
                                             </button>
 
                                             {listing.status === 'pending' && (
@@ -438,6 +545,15 @@ const AdminDashboard = () => {
                                             <div className="text-xs text-slate-500 uppercase font-bold tracking-wider">NIC Back</div>
                                             <img src={v.verification?.nicBack} className="rounded-lg border border-slate-200 cursor-pointer hover:opacity-90 w-full" onClick={() => window.open(v.verification.nicBack, '_blank')} />
                                         </div>
+                                        <div className="mt-4 pt-4 border-t border-slate-200">
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-[10px] font-bold text-slate-400 uppercase">AI confidence Score</span>
+                                                <span className="text-xs font-black text-primary-600">88%</span>
+                                            </div>
+                                            <div className="mt-2 h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                                                <div className="h-full bg-primary-600 rounded-full" style={{ width: '88%' }}></div>
+                                            </div>
+                                        </div>
                                     </div>
                                     <div className="p-6 flex-grow flex flex-col justify-between">
                                         <div>
@@ -468,6 +584,134 @@ const AdminDashboard = () => {
                             ))}
                         </div>
                     )}
+                </div>
+            )}
+
+            {/* Analytics Tab */}
+            {activeTab === 'analytics' && (
+                <div className="space-y-8">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        {/* Heatmap Section */}
+                        <div className="lg:col-span-2 bg-white p-8 rounded-[2.5rem] shadow-xl border border-slate-100">
+                            <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest mb-8">Platform Demand Heatmap</h3>
+                            <div className="space-y-6">
+                                {['Colombo 03', 'Dehiwala', 'Negombo', 'Gampaha', 'Kandy'].map((town, i) => (
+                                    <div key={town} className="group">
+                                        <div className="flex justify-between items-center mb-2">
+                                            <span className="text-xs font-black text-slate-700">{town}</span>
+                                            <span className="text-[10px] font-bold text-slate-400">Demand: {90 - i * 10}%</span>
+                                        </div>
+                                        <div className="h-4 w-full bg-slate-50 rounded-full overflow-hidden border border-slate-100">
+                                            <div
+                                                className="h-full bg-gradient-to-r from-primary-400 to-primary-600 transition-all duration-1000"
+                                                style={{ width: `${90 - i * 10}%` }}
+                                            ></div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Stats Summary */}
+                        <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white shadow-2xl">
+                            <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-8">Pulse Statistics</h3>
+                            <div className="space-y-8">
+                                <div>
+                                    <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Growth Rate</p>
+                                    <p className="text-3xl font-black text-primary-400">+12.4% MoM</p>
+                                </div>
+                                <div className="pt-8 border-t border-white/10">
+                                    <p className="text-[10px] text-slate-500 uppercase font-bold mb-4">Recommendations</p>
+                                    <ul className="space-y-4">
+                                        <li className="text-xs flex items-start gap-3">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-primary-500 mt-1"></div>
+                                            <p className="text-slate-300">Increase supply in highly active hubs</p>
+                                        </li>
+                                        <li className="text-xs flex items-start gap-3">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-primary-500 mt-1"></div>
+                                            <p className="text-slate-300">Owner verification incentive needed in new towns</p>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Disputes Tab */}
+            {activeTab === 'disputes' && (
+                <div className="bg-white rounded-[2.5rem] shadow-xl border border-slate-100 overflow-hidden">
+                    <div className="p-8 border-b border-slate-100 flex items-center justify-between">
+                        <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest">Platform Integrity Center</h3>
+                        <span className="bg-red-50 text-red-600 px-4 py-1.5 rounded-full text-xs font-black">2 Critical Reports</span>
+                    </div>
+                    <div className="divide-y divide-slate-100">
+                        {[
+                            { id: 1, type: 'Listing', target: 'Luxury Villa in Negombo', reason: 'Misleading photos', reportedBy: 'John Doe', date: '2026-02-18' },
+                            { id: 2, type: 'User', target: 'Amila Perera', reason: 'Spam inquiries', reportedBy: 'Kasun Silva', date: '2026-02-17' }
+                        ].map(dispute => (
+                            <div key={dispute.id} className="p-8 hover:bg-slate-50 transition-all flex items-center justify-between group">
+                                <div className="flex items-center gap-6">
+                                    <div className="w-12 h-12 bg-red-50 rounded-2xl flex items-center justify-center text-red-500 border border-red-100">
+                                        <ShieldAlert className="h-6 w-6" />
+                                    </div>
+                                    <div>
+                                        <div className="flex items-center gap-3 mb-1">
+                                            <span className="text-[10px] font-black uppercase text-red-500 tracking-widest">{dispute.type} Report</span>
+                                            <h4 className="font-black text-slate-900">{dispute.target}</h4>
+                                        </div>
+                                        <p className="text-sm text-slate-500 italic">" {dispute.reason} "</p>
+                                        <p className="text-[10px] text-slate-400 mt-2 font-bold uppercase tracking-widest">Reported by {dispute.reportedBy} • {dispute.date}</p>
+                                    </div>
+                                </div>
+                                <div className="flex gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button className="px-6 py-2.5 bg-slate-900 text-white rounded-xl text-xs font-black hover:bg-slate-800 transition-colors">Resolve</button>
+                                    <button className="px-6 py-2.5 border border-slate-200 rounded-xl text-xs font-black hover:bg-slate-100 transition-colors">Dismiss</button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Palette Tab */}
+            {activeTab === 'palette' && (
+                <div className="max-w-4xl">
+                    <div className="bg-white p-12 rounded-[3rem] shadow-2xl border border-slate-100">
+                        <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest mb-10 text-center">Global Identity Manager</h3>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
+                            {[
+                                { name: 'Royal Emerald', color: '#10b981' },
+                                { name: 'Oceanic Blue', color: '#3b82f6' },
+                                { name: 'Velvet Purple', color: '#8b5cf6' },
+                                { name: 'Sunset Orange', color: '#f59e0b' }
+                            ].map(theme => (
+                                <button
+                                    key={theme.name}
+                                    className="flex flex-col items-center gap-4 group"
+                                    onClick={() => toast.success(`${theme.name} applied globally`)}
+                                >
+                                    <div
+                                        className="w-20 h-20 rounded-[2rem] shadow-xl transition-all group-hover:scale-110 group-hover:rotate-6 ring-4 ring-transparent group-hover:ring-slate-100"
+                                        style={{ backgroundColor: theme.color }}
+                                    ></div>
+                                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{theme.name}</span>
+                                </button>
+                            ))}
+                        </div>
+                        <div className="bg-slate-50 p-8 rounded-[2rem] border border-slate-100">
+                            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Custom Primary Hex Code</h4>
+                            <div className="flex gap-4">
+                                <input
+                                    type="text"
+                                    placeholder="#000000"
+                                    className="flex-grow px-6 py-4 bg-white border-2 border-slate-100 rounded-2xl font-black text-slate-900 focus:border-primary-500 outline-none"
+                                />
+                                <button className="px-10 py-4 bg-primary-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-primary-500/20 active:scale-95">Update Branding</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

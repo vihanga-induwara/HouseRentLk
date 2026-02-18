@@ -188,6 +188,21 @@ const StepMedia = ({ files, previewUrls, handleFileChange, removeImage, moveImag
                 value={formData.virtualTourUrl}
                 onChange={(e) => setFormData(prev => ({ ...prev, virtualTourUrl: e.target.value }))}
             />
+            {formData.virtualTourUrl && (
+                <div className="mt-4">
+                    <p className="text-xs font-bold text-slate-500 uppercase mb-2">Tour Preview</p>
+                    <div className="aspect-video rounded-xl overflow-hidden border border-slate-200 bg-slate-100 flex items-center justify-center relative group">
+                        <iframe
+                            src={formData.virtualTourUrl.replace('watch?v=', 'embed/')}
+                            className="w-full h-full border-0"
+                            allowFullScreen
+                            title="360 Preview"
+                        ></iframe>
+                        <div className="absolute inset-0 bg-black/5 pointer-events-none"></div>
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-2 italic">* Preview might not work for all links depending on site permissions.</p>
+                </div>
+            )}
         </div>
     </div>
 );

@@ -29,8 +29,11 @@ export const AuthProvider = ({ children }) => {
             // Assuming data is array of favorite objects populated with listingId. 
             // We just need IDs for checking status usually. 
             // But if we want to display them, we keep full objects or map to IDs.
-            // Let's store IDs for quick lookup.
-            setFavorites(data.map(fav => fav.listingId._id || fav.listingId));
+            // Store IDs for quick lookup. Filter out null listingId (deleted listings)
+            setFavorites(data
+                .filter(fav => fav.listingId)
+                .map(fav => fav.listingId._id || fav.listingId)
+            );
         } catch (error) {
             console.error("Failed to fetch favorites", error);
         }

@@ -130,6 +130,10 @@ const listingSchema = mongoose.Schema(
         renewedAt: {
             type: Date,
         },
+        isGoodDeal: {
+            type: Boolean,
+            default: false,
+        },
     },
     {
         timestamps: true,
@@ -139,6 +143,17 @@ const listingSchema = mongoose.Schema(
 function arrayLimit(val) {
     return val.length <= 10;
 }
+
+// Virtual for "New" badge (less than 7 days old)
+listingSchema.virtual('isNewListing').get(function () {
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    return this.createdAt > sevenDaysAgo;
+});
+
+// Ensure virtuals are serialized
+listingSchema.set('toJSON', { virtuals: true });
+listingSchema.set('toObject', { virtuals: true });
 
 listingSchema.index({ 'location.coordinates': '2dsphere' });
 

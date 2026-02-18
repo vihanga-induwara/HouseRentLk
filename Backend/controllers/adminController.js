@@ -52,11 +52,11 @@ const getUserDetails = asyncHandler(async (req, res) => {
     });
 });
 
-// @desc    Update user status (suspend/activate)
+// @desc    Update user status (block/suspend/activate)
 // @route   PUT /api/admin/users/:id/status
 // @access  Private (Admin)
 const updateUserStatus = asyncHandler(async (req, res) => {
-    const { isActive } = req.body;
+    const { status } = req.body; // 'active', 'inactive', 'suspended', 'blocked'
 
     const user = await User.findById(req.params.id);
 
@@ -65,10 +65,55 @@ const updateUserStatus = asyncHandler(async (req, res) => {
         throw new Error('User not found');
     }
 
-    user.isActive = isActive;
+    user.status = status;
     await user.save();
 
-    res.status(200).json({ message: `User ${isActive ? 'activated' : 'suspended'} successfully` });
+    res.status(200).json({ message: `User status updated to ${status} successfully`, user });
+});
+
+// @desc    Update user details (role/status/verified/bio/phone)
+// @route   PUT /api/admin/users/:id
+// @access  Private (Admin)
+const updateUser = asyncHandler(async (req, res) => {
+    const { name, email, role, status, phone, bio, isVerified, renterProfile } = req.body;
+
+    const user = await User.findById(req.params.id);
+
+    if (!user) {
+        res.status(404);
+        throw new Error('User not found');
+    }
+
+    if (name !== undefined) user.name = name;
+    if (email !== undefined) user.email = email;
+    if (role !== undefined) user.role = role;
+    if (status !== undefined) user.status = status;
+    if (phone !== undefined) user.phone = phone;
+    if (bio !== undefined) user.bio = bio;
+    if (isVerified !== undefined) user.isVerified = isVerified;
+    if (renterProfile !== undefined) user.renterProfile = renterProfile;
+
+    await user.save();
+
+    res.status(200).json({ message: 'User updated successfully', user });
+});
+
+// @desc    Delete user
+// @route   DELETE /api/admin/users/:id
+// @access  Private (Admin)
+const deleteUser = asyncHandler(async (req, res) => {
+    const user = await User.findById(req.params.id);
+
+    if (!user) {
+        res.status(404);
+        throw new Error('User not found');
+    }
+
+    // Optional: Delete user's listings
+    await Listing.deleteMany({ owner: req.params.id });
+    await user.deleteOne();
+
+    res.status(200).json({ message: 'User and their listings deleted successfully' });
 });
 
 // @desc    Get dashboard statistics
@@ -108,5 +153,7 @@ module.exports = {
     getUsers,
     getUserDetails,
     updateUserStatus,
+    updateUser,
+    deleteUser,
     getStats
 };

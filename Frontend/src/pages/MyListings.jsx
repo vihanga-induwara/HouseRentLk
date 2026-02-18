@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import API from '../utils/api';
 import { toast } from 'react-hot-toast';
+import { formatCurrency } from '../utils/format';
 import {
     Eye, Edit3, Pause, Play, Home, Trash2, RefreshCw,
     Clock, CheckCircle, XCircle, AlertCircle, MapPin, Calendar,
@@ -40,15 +41,7 @@ const MyListings = () => {
     const [marketInsight, setMarketInsight] = useState(null);
     const [loadingAnalytics, setLoadingAnalytics] = useState(false);
 
-    useEffect(() => {
-        if (!user) {
-            navigate('/login');
-            return;
-        }
-        fetchMyListings();
-    }, [user]);
-
-    const fetchMyListings = async () => {
+    const fetchMyListings = useCallback(async () => {
         try {
             const { data } = await API.get('/listings/my-listings');
             const now = new Date();
@@ -59,13 +52,21 @@ const MyListings = () => {
                 return l;
             });
             setListings(updated);
-        } catch (err) {
+        } catch (error) {
             toast.error('Failed to load your listings');
-            console.error(err);
+            console.error(error);
         } finally {
             setLoading(false);
         }
-    };
+    }, [user]);
+
+    useEffect(() => {
+        if (!user) {
+            navigate('/login');
+            return;
+        }
+        fetchMyListings();
+    }, [user, fetchMyListings, navigate]);
 
     const handleStatusChange = async (listingId, newStatus) => {
         setActionLoading(listingId);
@@ -74,8 +75,8 @@ const MyListings = () => {
             setListings(prev => prev.map(l => l._id === listingId ? data : l));
             const statusLabel = STATUS_CONFIG[newStatus]?.label || newStatus;
             toast.success(`Listing set to "${statusLabel}"`);
-        } catch (err) {
-            toast.error(err.response?.data?.message || 'Failed to update status');
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Failed to update status');
         } finally {
             setActionLoading(null);
         }
@@ -87,8 +88,8 @@ const MyListings = () => {
             const { data } = await API.put(`/listings/${listingId}/renew`);
             setListings(prev => prev.map(l => l._id === listingId ? data : l));
             toast.success('Listing renewed for 30 days!');
-        } catch (err) {
-            toast.error(err.response?.data?.message || 'Failed to renew');
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Failed to renew');
         } finally {
             setActionLoading(null);
         }
@@ -101,8 +102,8 @@ const MyListings = () => {
             await API.delete(`/listings/${listingId}`);
             setListings(prev => prev.filter(l => l._id !== listingId));
             toast.success('Listing deleted');
-        } catch (err) {
-            toast.error(err.response?.data?.message || 'Failed to delete');
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Failed to delete');
         } finally {
             setActionLoading(null);
         }
@@ -116,8 +117,8 @@ const MyListings = () => {
             setListings(prev => [data, ...prev]);
             toast.success('Listing duplicated! You can now edit the copy.');
             window.scrollTo({ top: 0, behavior: 'smooth' });
-        } catch (err) {
-            toast.error(err.response?.data?.message || 'Failed to duplicate');
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Failed to duplicate');
         } finally {
             setActionLoading(null);
         }
@@ -133,9 +134,10 @@ const MyListings = () => {
             ]);
             setAnalyticsData(analyticsRes.data);
             setMarketInsight(marketRes.data);
-        } catch (err) {
+        } catch (error) {
             toast.error('Failed to load analytics');
             setAnalyticsListing(null);
+            console.error(error);
         } finally {
             setLoadingAnalytics(false);
         }
@@ -208,7 +210,7 @@ const MyListings = () => {
 
                                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-500 mb-3">
                                         <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" />{listing.location?.town}</span>
-                                        <span className="font-semibold text-slate-700">LKR {listing.price?.toLocaleString()}/mo</span>
+                                        <span className="font-semibold text-slate-700">{formatCurrency(listing.price)}/mo</span>
                                         <span className="flex items-center gap-1"><Eye className="h-3.5 w-3.5" />{listing.views || 0} views</span>
                                         <span className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5" />{new Date(listing.createdAt).toLocaleDateString()}</span>
                                     </div>
@@ -250,7 +252,7 @@ const MyListings = () => {
                                 <div className="min-w-0">
                                     <h4 className="font-bold text-slate-900 text-lg truncate">{analyticsListing.title}</h4>
                                     <p className="text-sm text-slate-500">{analyticsListing.location?.town}</p>
-                                    <div className="text-primary-600 font-bold text-lg mt-1">LKR {analyticsListing.price?.toLocaleString()}</div>
+                                    <div className="text-primary-600 font-bold text-lg mt-1">{formatCurrency(analyticsListing.price)}</div>
                                 </div>
                             </div>
 

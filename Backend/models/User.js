@@ -32,7 +32,33 @@ const userSchema = mongoose.Schema(
         },
         avatar: {
             type: String,
-            default: '', // URL to image
+            default: 'default-avatar.png',
+        },
+        // Verification Info
+        verificationStatus: {
+            type: String,
+            enum: ['none', 'pending', 'verified', 'rejected'],
+            default: 'none',
+        },
+        verificationDocs: [
+            {
+                type: { type: String, enum: ['NIC', 'Utility Bill', 'Deed', 'Business Reg'] },
+                url: String,
+                status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
+                comment: String,
+            }
+        ],
+        verifiedAt: Date,
+        verificationMessage: String,
+        // Renter Profile (Matching)
+        renterProfile: {
+            isActive: { type: Boolean, default: false },
+            preferredTowns: [String],
+            budgetMin: Number,
+            budgetMax: Number,
+            preferredType: [String],
+            bedsMin: Number,
+            bio: String,
         },
         bio: {
             type: String,
@@ -42,40 +68,12 @@ const userSchema = mongoose.Schema(
             type: Boolean,
             default: false,
         },
-        isActive: {
-            type: Boolean,
-            default: true,
-        },
-        preferences: {
-            locations: [String],
-            minBudget: Number,
-            maxBudget: Number,
-            propertyTypes: [String],
-            bedrooms: Number,
-            petFriendly: Boolean,
-            furnished: {
-                type: String,
-                enum: ['any', 'furnished', 'unfurnished'],
-                default: 'any'
-            }
-        },
-        verification: {
-            status: {
-                type: String,
-                enum: ['not_submitted', 'pending', 'approved', 'rejected'],
-                default: 'not_submitted'
-            },
-            nicFront: String,
-            nicBack: String,
-            message: String, // Admin feedback
-            verifiedAt: Date
-        },
         lastLogin: {
             type: Date,
         },
         status: {
             type: String,
-            enum: ['active', 'inactive', 'suspended'],
+            enum: ['active', 'inactive', 'suspended', 'blocked'],
             default: 'active'
         }
     },

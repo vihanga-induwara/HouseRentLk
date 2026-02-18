@@ -14,13 +14,16 @@
   "type": "commonjs",
   "dependencies": {
     "bcryptjs": "^3.0.3",
+    "cloudinary": "^1.41.3",
     "cors": "^2.8.6",
+    "csv-parser": "^3.2.0",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
     "express-async-handler": "^1.2.0",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.2.1",
     "multer": "^2.0.2",
+    "multer-storage-cloudinary": "^4.0.0",
     "ua-parser-js": "^2.0.9"
   },
   "devDependencies": {

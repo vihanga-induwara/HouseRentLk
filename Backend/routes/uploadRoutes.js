@@ -1,45 +1,45 @@
-const path = require('path');
 const express = require('express');
 const multer = require('multer');
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const router = express.Router();
 
-const storage = multer.diskStorage({
-  destination(req, file, cb) {
-    cb(null, 'uploads/');
-  },
-  filename(req, file, cb) {
-    cb(
-      null,
-      `${file.fieldname}-${Date.now()}${path.extname(file.originalname)}`
-    );
-  },
-});
-
-function checkFileType(file, cb) {
-  const filetypes = /jpg|jpeg|png/;
-  const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-  const mimetype = filetypes.test(file.mimetype);
-
-  if (extname && mimetype) {
-    return cb(null, true);
-  } else {
-    cb('Images only!');
-  }
-}
-
-const upload = multer({
-  storage,
-  fileFilter: function (req, file, cb) {
-    checkFileType(file, cb);
+// Configure Multer Storage for Cloudinary
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: async (req, file) => {
+    const isVideo = file.mimetype.startsWith('video/');
+    return {
+      folder: 'house_rent_lk',
+      resource_type: isVideo ? 'video' : 'image',
+      allowed_formats: isVideo
+        ? ['mp4', 'mov', 'avi', 'mkv']
+        : ['jpg', 'jpeg', 'png', 'webp'],
+      public_id: `${Date.now()}-${file.originalname.split('.')[0]}`,
+    };
   },
 });
 
+const upload = multer({ storage });
+
+// @desc    Upload a single image
+// @route   POST /api/upload
+// @access  Private
 router.post('/', upload.single('image'), (req, res) => {
-  res.send(`/${req.file.path.replace(/\\/g, '/')}`);
+  if (!req.file) {
+    return res.status(400).send('No file uploaded');
+  }
+  res.send(req.file.path); // path is the Cloudinary secure_url by default in multer-storage-cloudinary
 });
 
+// @desc    Upload multiple images/videos
+// @route   POST /api/upload/multiple
+// @access  Private
 router.post('/multiple', upload.array('images', 10), (req, res) => {
-  const paths = req.files.map(file => `/${file.path.replace(/\\/g, '/')}`);
+  if (!req.files || req.files.length === 0) {
+    return res.status(400).send('No files uploaded');
+  }
+  const paths = req.files.map((file) => file.path);
   res.send(paths);
 });
 

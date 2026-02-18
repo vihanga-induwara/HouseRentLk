@@ -27,8 +27,24 @@
 }
 
 /* Custom Base Styles */
+:root {
+  --bg-color: #f8fafc; /* slate-50 */
+  --text-color: #1e293b; /* slate-800 */
+}
+
+.dark {
+  --bg-color: #0f172a; /* slate-900 */
+  --text-color: #f1f5f9; /* slate-100 */
+}
+
 body {
-  @apply bg-slate-50 text-slate-800 font-sans antialiased;
+  @apply font-sans antialiased transition-colors duration-300;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+}
+
+.dark body {
+  @apply bg-slate-900 text-slate-100;
 }
 
 /* Scrollbar Customization */
