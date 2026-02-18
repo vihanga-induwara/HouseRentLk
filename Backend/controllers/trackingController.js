@@ -2,6 +2,8 @@ const asyncHandler = require('express-async-handler');
 const SearchHistory = require('../models/SearchHistory');
 const UserActivity = require('../models/UserActivity');
 const Favorite = require('../models/Favorite');
+const Listing = require('../models/Listing');
+const { createNotification } = require('./notificationController');
 
 // @desc    Track search query
 // @route   POST /api/tracking/search
@@ -73,6 +75,20 @@ const saveFavorite = asyncHandler(async (req, res) => {
         listingId
     });
 
+    // Notify the listing owner
+    try {
+        const listing = await Listing.findById(listingId);
+        if (listing && listing.owner.toString() !== req.user.id) {
+            await createNotification({
+                userId: listing.owner,
+                type: 'listing_favorited',
+                title: 'Someone saved your listing! ❤️',
+                message: `${req.user.name} saved "${listing.title}" to their favorites`,
+                link: '/my-listings',
+            });
+        }
+    } catch (e) { /* don't block favorite creation */ }
+
     res.status(201).json(favorite);
 });
 
@@ -121,9 +137,35 @@ const getSearchHistory = asyncHandler(async (req, res) => {
     res.status(200).json(history);
 });
 
+// @desc    Track listing share
+// @route   POST /api/tracking/share/:listingId
+// @access  Public
+const trackShare = asyncHandler(async (req, res) => {
+    const listing = await Listing.findById(req.params.listingId);
+
+    if (!listing) {
+        res.status(404);
+        throw new Error('Listing not found');
+    }
+
+    // Increment shares
+    listing.shares = (listing.shares || 0) + 1;
+    await listing.save({ validateBeforeSave: false });
+
+    // Also record as activity
+    await UserActivity.create({
+        userId: req.user?._id,
+        listingId: req.params.listingId,
+        action: 'share'
+    });
+
+    res.status(200).json({ message: 'Share tracked', shares: listing.shares });
+});
+
 module.exports = {
     trackSearch,
     trackActivity,
+    trackShare,
     saveFavorite,
     removeFavorite,
     getFavorites,

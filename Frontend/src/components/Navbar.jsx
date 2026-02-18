@@ -1,8 +1,9 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Home, User, LogOut, Heart } from 'lucide-react';
+import { Menu, X, Home, User, LogOut, Heart, List, MessageSquare } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import Button from './Button';
 import { useAuth } from '../context/AuthContext';
+import NotificationBell from './NotificationBell';
 
 const Navbar = () => {
     const [isOpen, setIsOpen] = useState(false);
@@ -72,6 +73,19 @@ const Navbar = () => {
                                         Favorites
                                     </Button>
                                 </Link>
+                                <Link to="/my-listings">
+                                    <Button size="sm" variant="outline" className="rounded-full px-4 border-slate-200">
+                                        <List className="h-4 w-4 mr-2" />
+                                        My Listings
+                                    </Button>
+                                </Link>
+                                <Link to="/inbox">
+                                    <Button size="sm" variant="outline" className="rounded-full px-4 border-slate-200">
+                                        <MessageSquare className="h-4 w-4 mr-2" />
+                                        Inbox
+                                    </Button>
+                                </Link>
+                                <NotificationBell />
                                 <Link to="/profile">
                                     <Button size="sm" variant="outline" className="rounded-full px-4 border-slate-200">
                                         <User className="h-4 w-4" />
@@ -138,6 +152,11 @@ const Navbar = () => {
                             <span className="text-base font-medium text-slate-700 block px-2">
                                 Hi, {user.name}
                             </span>
+                            <Link to="/my-listings" onClick={() => setIsOpen(false)}>
+                                <Button variant="outline" className="w-full justify-center rounded-xl border-slate-200">
+                                    <List className="h-4 w-4 mr-2" /> My Listings
+                                </Button>
+                            </Link>
                             <Button
                                 onClick={() => {
                                     logout();

@@ -59,6 +59,17 @@ const userSchema = mongoose.Schema(
                 default: 'any'
             }
         },
+        verification: {
+            status: {
+                type: String,
+                enum: ['not_submitted', 'pending', 'approved', 'rejected'],
+                default: 'not_submitted'
+            },
+            nicFront: String,
+            nicBack: String,
+            message: String, // Admin feedback
+            verifiedAt: Date
+        },
         lastLogin: {
             type: Date,
         },

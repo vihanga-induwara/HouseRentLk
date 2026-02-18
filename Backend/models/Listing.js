@@ -79,6 +79,9 @@ const listingSchema = mongoose.Schema(
         video: {
             type: String, // URL
         },
+        virtualTourUrl: {
+            type: String, // URL for 360 tour
+        },
 
         // Additional Info
         isUrgent: { type: Boolean, default: false },
@@ -86,14 +89,24 @@ const listingSchema = mongoose.Schema(
         availableFrom: { type: Date, default: Date.now },
         tenantType: { type: String, enum: ['Family', 'Students', 'Professionals', 'Any'], default: 'Any' },
         houseRules: { type: String },
+        availableVisits: [
+            {
+                day: { type: String, enum: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday', 'Daily', 'Weekdays', 'Weekends'] },
+                times: { type: String } // e.g., "9 AM - 12 PM"
+            }
+        ],
 
         // System
         status: {
             type: String,
-            enum: ['pending', 'approved', 'rejected', 'changes_requested'],
+            enum: ['pending', 'approved', 'rejected', 'changes_requested', 'paused', 'rented', 'expired'],
             default: 'pending',
         },
         views: {
+            type: Number,
+            default: 0,
+        },
+        shares: {
             type: Number,
             default: 0,
         },
@@ -110,6 +123,12 @@ const listingSchema = mongoose.Schema(
             description: { type: String },
             townVibe: { type: String },
             generatedAt: { type: Date },
+        },
+        expiresAt: {
+            type: Date,
+        },
+        renewedAt: {
+            type: Date,
         },
     },
     {

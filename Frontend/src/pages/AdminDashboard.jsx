@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import {
     Users, Home as HomeIcon, Eye, Check, X, ShieldAlert, TrendingUp,
-    FileText, UserCheck, UserX, Search, Filter
+    FileText, UserCheck, UserX, Search, Filter, ShieldCheck
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
@@ -19,6 +19,7 @@ const AdminDashboard = () => {
     const [stats, setStats] = useState({});
     const [listings, setListings] = useState([]);
     const [users, setUsers] = useState([]);
+    const [pendingVerifications, setPendingVerifications] = useState([]);
     const [filters, setFilters] = useState({ role: '', search: '' });
 
     useEffect(() => {
@@ -36,14 +37,16 @@ const AdminDashboard = () => {
     const fetchData = async () => {
         setIsLoading(true);
         try {
-            const [statsRes, listingsRes, usersRes] = await Promise.all([
+            const [statsRes, listingsRes, usersRes, verificationsRes] = await Promise.all([
                 API.get('/admin/stats'),
                 API.get('/admin/listings'),
-                API.get('/admin/users')
+                API.get('/admin/users'),
+                API.get('/verification/pending')
             ]);
             setStats(statsRes.data);
             setListings(listingsRes.data);
             setUsers(usersRes.data);
+            setPendingVerifications(verificationsRes.data);
         } catch (error) {
             console.error(error);
             toast.error('Failed to fetch data');
@@ -71,6 +74,16 @@ const AdminDashboard = () => {
         } catch (error) {
             console.error(error);
             toast.error('Failed to update user status');
+        }
+    };
+
+    const handleVerificationReview = async (userId, status, message) => {
+        try {
+            await API.put(`/verification/${userId}`, { status, message });
+            toast.success(`Verification ${status} successfully`);
+            fetchData();
+        } catch (error) {
+            toast.error('Failed to update verification status');
         }
     };
 
@@ -109,8 +122,8 @@ const AdminDashboard = () => {
                     <button
                         onClick={() => setActiveTab('dashboard')}
                         className={`pb-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'dashboard'
-                                ? 'border-primary-500 text-primary-600'
-                                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                            ? 'border-primary-500 text-primary-600'
+                            : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
                             }`}
                     >
                         <TrendingUp className="h-4 w-4 inline mr-2" />
@@ -119,8 +132,8 @@ const AdminDashboard = () => {
                     <button
                         onClick={() => setActiveTab('users')}
                         className={`pb-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'users'
-                                ? 'border-primary-500 text-primary-600'
-                                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                            ? 'border-primary-500 text-primary-600'
+                            : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
                             }`}
                     >
                         <Users className="h-4 w-4 inline mr-2" />
@@ -129,12 +142,22 @@ const AdminDashboard = () => {
                     <button
                         onClick={() => setActiveTab('listings')}
                         className={`pb-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'listings'
-                                ? 'border-primary-500 text-primary-600'
-                                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                            ? 'border-primary-500 text-primary-600'
+                            : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
                             }`}
                     >
                         <HomeIcon className="h-4 w-4 inline mr-2" />
                         Listings ({listings.length})
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('verifications')}
+                        className={`pb-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'verifications'
+                            ? 'border-primary-500 text-primary-600'
+                            : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                            }`}
+                    >
+                        <ShieldCheck className="h-4 w-4 inline mr-2" />
+                        Verifications ({pendingVerifications.length})
                     </button>
                 </nav>
             </div>
@@ -289,8 +312,8 @@ const AdminDashboard = () => {
                                             <button
                                                 onClick={() => handleUserStatus(u._id, !u.isActive)}
                                                 className={`p-2 rounded-lg transition-colors ${u.isActive
-                                                        ? 'text-red-600 hover:bg-red-50'
-                                                        : 'text-green-600 hover:bg-green-50'
+                                                    ? 'text-red-600 hover:bg-red-50'
+                                                    : 'text-green-600 hover:bg-green-50'
                                                     }`}
                                                 title={u.isActive ? 'Suspend User' : 'Activate User'}
                                             >
@@ -343,8 +366,8 @@ const AdminDashboard = () => {
                                     </td>
                                     <td className="px-6 py-4">
                                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${listing.status === 'approved' ? 'bg-green-100 text-green-800' :
-                                                listing.status === 'rejected' ? 'bg-red-100 text-red-800' :
-                                                    'bg-yellow-100 text-yellow-800'
+                                            listing.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                                                'bg-yellow-100 text-yellow-800'
                                             }`}>
                                             {listing.status}
                                         </span>
@@ -383,6 +406,68 @@ const AdminDashboard = () => {
                             ))}
                         </tbody>
                     </table>
+                </div>
+            )}
+
+            {/* Verifications Tab */}
+            {activeTab === 'verifications' && (
+                <div className="space-y-6">
+                    {pendingVerifications.length === 0 ? (
+                        <div className="bg-white p-12 rounded-2xl shadow-sm border border-slate-200 text-center">
+                            <ShieldCheck className="h-12 w-12 text-slate-300 mx-auto mb-4" />
+                            <h3 className="text-lg font-bold text-slate-900">No Pending Requests</h3>
+                            <p className="text-slate-500 mt-1">All verification requests have been processed.</p>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 gap-6">
+                            {pendingVerifications.map((v) => (
+                                <div key={v._id} className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col md:flex-row">
+                                    <div className="p-6 md:w-1/3 border-b md:border-b-0 md:border-r border-slate-100 bg-slate-50/50">
+                                        <div className="flex items-center mb-4">
+                                            <div className="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center font-bold text-primary-600 mr-3">
+                                                {v.name?.charAt(0)}
+                                            </div>
+                                            <div>
+                                                <div className="font-bold text-slate-900">{v.name}</div>
+                                                <div className="text-xs text-slate-500">{v.email}</div>
+                                            </div>
+                                        </div>
+                                        <div className="space-y-3">
+                                            <div className="text-xs text-slate-500 uppercase font-bold tracking-wider">NIC Front</div>
+                                            <img src={v.verification?.nicFront} className="rounded-lg border border-slate-200 cursor-pointer hover:opacity-90 w-full" onClick={() => window.open(v.verification.nicFront, '_blank')} />
+                                            <div className="text-xs text-slate-500 uppercase font-bold tracking-wider">NIC Back</div>
+                                            <img src={v.verification?.nicBack} className="rounded-lg border border-slate-200 cursor-pointer hover:opacity-90 w-full" onClick={() => window.open(v.verification.nicBack, '_blank')} />
+                                        </div>
+                                    </div>
+                                    <div className="p-6 flex-grow flex flex-col justify-between">
+                                        <div>
+                                            <h4 className="font-bold text-slate-900 mb-4">Review Verification</h4>
+                                            <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Message to Owner (Optional)</label>
+                                            <textarea
+                                                id={`msg-${v._id}`}
+                                                className="w-full rounded-xl border-slate-200 focus:ring-primary-500 focus:border-primary-500 text-sm h-32"
+                                                placeholder="Explain why the verification was approved or rejected..."
+                                            />
+                                        </div>
+                                        <div className="mt-6 flex gap-3">
+                                            <button
+                                                onClick={() => handleVerificationReview(v._id, 'approved', document.getElementById(`msg-${v._id}`).value)}
+                                                className="flex-grow py-3 bg-green-600 text-white font-bold rounded-xl hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+                                            >
+                                                <Check className="h-5 w-5" /> Approve
+                                            </button>
+                                            <button
+                                                onClick={() => handleVerificationReview(v._id, 'rejected', document.getElementById(`msg-${v._id}`).value)}
+                                                className="flex-grow py-3 bg-red-50 text-red-600 font-bold rounded-xl border border-red-100 hover:bg-red-100 transition-colors flex items-center justify-center gap-2"
+                                            >
+                                                <X className="h-5 w-5" /> Reject
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             )}
         </div>

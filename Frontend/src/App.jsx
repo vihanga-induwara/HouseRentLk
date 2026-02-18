@@ -9,6 +9,9 @@ import Profile from './pages/Profile';
 import AdminDashboard from './pages/AdminDashboard';
 import PostAd from './pages/PostAd';
 import Favorites from './pages/Favorites';
+import MyListings from './pages/MyListings';
+import EditListing from './pages/EditListing';
+import Inbox from './pages/Inbox';
 import { AuthProvider } from './context/AuthContext';
 import { Toaster } from 'react-hot-toast';
 
@@ -28,6 +31,9 @@ function App() {
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/post-ad" element={<PostAd />} />
             <Route path="/favorites" element={<Favorites />} />
+            <Route path="/my-listings" element={<MyListings />} />
+            <Route path="/edit-listing/:id" element={<EditListing />} />
+            <Route path="/inbox" element={<Inbox />} />
           </Routes>
         </Layout>
       </Router>

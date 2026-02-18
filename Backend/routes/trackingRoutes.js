@@ -6,13 +6,15 @@ const {
     saveFavorite,
     removeFavorite,
     getFavorites,
-    getSearchHistory
+    getSearchHistory,
+    trackShare
 } = require('../controllers/trackingController');
 const { protect } = require('../middleware/authMiddleware');
 
 // Public tracking (can work without auth)
 router.post('/search', trackSearch);
 router.post('/activity', trackActivity);
+router.post('/share/:listingId', trackShare);
 
 // Protected routes
 router.get('/search-history', protect, getSearchHistory);

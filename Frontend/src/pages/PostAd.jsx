@@ -6,7 +6,7 @@ import Button from '../components/Button';
 import Input from '../components/Input';
 import {
     Home, MapPin, DollarSign, List, Image as ImageIcon, CheckCircle,
-    ChevronRight, ChevronLeft, Upload, X
+    ChevronRight, ChevronLeft, Upload, X, Trash2
 } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -131,77 +131,169 @@ const StepAmenities = ({ amenities, toggle }) => (
     </div>
 );
 
-const StepMedia = ({ files, handleFileChange, removeImage }) => (
-    <div>
-        <h2 className="text-2xl font-bold mb-6 text-slate-900">Upload Photos</h2>
-        <div className="border-2 border-dashed border-slate-300 rounded-2xl p-8 text-center hover:bg-slate-50 transition-colors relative">
-            <input
-                type="file"
-                id="images"
-                multiple
-                accept="image/*"
-                onChange={handleFileChange}
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-            />
-            <Upload className="h-10 w-10 text-slate-400 mx-auto mb-3" />
-            <p className="font-medium text-slate-600">Click or drag images to upload</p>
-            <p className="text-sm text-slate-400 mt-1">Minimum 3 photos recommended</p>
+const StepMedia = ({ files, previewUrls, handleFileChange, removeImage, moveImage, formData, setFormData }) => (
+    <div className="space-y-6">
+        <div>
+            <h2 className="text-2xl font-bold mb-6 text-slate-900">Media & Tours</h2>
+            <div className="border-2 border-dashed border-slate-300 rounded-2xl p-8 text-center hover:bg-slate-50 transition-colors relative mb-6">
+                <input
+                    type="file"
+                    id="images"
+                    multiple
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                />
+                <Upload className="h-10 w-10 text-slate-400 mx-auto mb-3" />
+                <p className="font-medium text-slate-600">Click or drag images to upload</p>
+                <p className="text-sm text-slate-400 mt-1">First image will be the cover photo. Max 10.</p>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+                {previewUrls.map((url, i) => (
+                    <div key={i} className="relative aspect-square rounded-xl overflow-hidden group border border-slate-200">
+                        <img src={url} alt="preview" className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                            {i > 0 && (
+                                <button onClick={() => moveImage(i, -1)} className="p-1 bg-white rounded-full hover:bg-slate-100 shadow-sm" title="Move Left">
+                                    <ChevronLeft className="h-4 w-4 text-slate-700" />
+                                </button>
+                            )}
+                            {i < previewUrls.length - 1 && (
+                                <button onClick={() => moveImage(i, 1)} className="p-1 bg-white rounded-full hover:bg-slate-100 shadow-sm" title="Move Right">
+                                    <ChevronRight className="h-4 w-4 text-slate-700" />
+                                </button>
+                            )}
+                            <button
+                                onClick={() => removeImage(i)}
+                                className="p-1 bg-red-500 rounded-full hover:bg-red-600 shadow-sm text-white"
+                                title="Remove Image"
+                            >
+                                <X className="h-4 w-4" />
+                            </button>
+                        </div>
+                        {i === 0 && (
+                            <div className="absolute bottom-0 inset-x-0 bg-primary-600 text-white text-[10px] font-bold text-center py-0.5">COVER</div>
+                        )}
+                    </div>
+                ))}
+            </div>
         </div>
 
-        <div className="grid grid-cols-3 md:grid-cols-4 gap-4 mt-8">
-            {files.map((url, i) => (
-                <div key={i} className="relative aspect-square rounded-xl overflow-hidden group">
-                    <img src={url} alt="preview" className="w-full h-full object-cover" />
+        <div className="pt-6 border-t border-slate-100">
+            <h3 className="text-lg font-bold text-slate-900 mb-4">Advanced Media</h3>
+            <Input
+                label="Virtual Tour / 360° Link (Optional)"
+                placeholder="e.g. Matterport or YouTube 360 link"
+                value={formData.virtualTourUrl}
+                onChange={(e) => setFormData(prev => ({ ...prev, virtualTourUrl: e.target.value }))}
+            />
+        </div>
+    </div>
+);
+
+const StepContact = ({ contactDetails, formData, setFormData, handleChange }) => {
+    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday', 'Daily', 'Weekdays', 'Weekends'];
+
+    const addVisitTime = () => {
+        setFormData(prev => ({
+            ...prev,
+            availableVisits: [...prev.availableVisits, { day: 'Monday', times: '9 AM - 5 PM' }]
+        }));
+    };
+
+    const removeVisitTime = (index) => {
+        setFormData(prev => ({
+            ...prev,
+            availableVisits: prev.availableVisits.filter((_, i) => i !== index)
+        }));
+    };
+
+    const updateVisitTime = (index, field, value) => {
+        const updated = [...formData.availableVisits];
+        updated[index][field] = value;
+        setFormData(prev => ({ ...prev, availableVisits: updated }));
+    };
+
+    return (
+        <div className="space-y-8">
+            <div className="space-y-4">
+                <h2 className="text-2xl font-bold mb-6 text-slate-900">Contact Preferences</h2>
+                <Input
+                    label="Alternative Phone / Office (Optional)"
+                    name="phone2"
+                    value={contactDetails.phone2}
+                    onChange={(e) => handleChange({ target: { name: 'contactDetails', value: { ...contactDetails, phone2: e.target.value } } })}
+                    placeholder="e.g. 0771234567"
+                />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Input
+                        label="WhatsApp Number"
+                        name="whatsapp"
+                        value={contactDetails.whatsapp}
+                        onChange={(e) => handleChange({ target: { name: 'contactDetails', value: { ...contactDetails, whatsapp: e.target.value } } })}
+                        placeholder="e.g. 94771234567"
+                    />
+                    <Input
+                        label="General Available Times"
+                        name="availableTimes"
+                        value={contactDetails.availableTimes}
+                        onChange={(e) => handleChange({ target: { name: 'contactDetails', value: { ...contactDetails, availableTimes: e.target.value } } })}
+                        placeholder="e.g. Weekdays 9 AM - 6 PM"
+                    />
+                </div>
+            </div>
+
+            <div className="pt-6 border-t border-slate-100">
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-bold text-slate-900">Visit Availability Settings</h3>
                     <button
-                        onClick={() => removeImage(i)}
-                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={addVisitTime}
+                        className="text-sm font-bold text-primary-600 hover:text-primary-700"
                     >
-                        <X className="h-3 w-3" />
+                        + Add Slot
                     </button>
                 </div>
-            ))}
-        </div>
-    </div>
-);
+                <p className="text-sm text-slate-500 mb-4 italic">Specify when renters can visit the property to reduce back-and-forth calls.</p>
 
-const StepContact = ({ contactDetails, handleChange }) => (
-    <div className="space-y-4">
-        <h2 className="text-2xl font-bold mb-6 text-slate-900">Contact Preferences</h2>
-        <Input
-            label="Alternative Phone (Optional)"
-            name="phone2"
-            value={contactDetails.phone2}
-            onChange={(e) => handleChange({ target: { name: 'contactDetails', value: { ...contactDetails, phone2: e.target.value } } })}
-            placeholder="e.g. 0771234567"
-        />
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input
-                label="WhatsApp Number"
-                name="whatsapp"
-                value={contactDetails.whatsapp}
-                onChange={(e) => handleChange({ target: { name: 'contactDetails', value: { ...contactDetails, whatsapp: e.target.value } } })}
-                placeholder="e.g. 94771234567"
-            />
-            <Input
-                label="Available Calling Times"
-                name="availableTimes"
-                value={contactDetails.availableTimes}
-                onChange={(e) => handleChange({ target: { name: 'contactDetails', value: { ...contactDetails, availableTimes: e.target.value } } })}
-                placeholder="e.g. Weekdays 9 AM - 6 PM"
-            />
+                <div className="space-y-3">
+                    {formData.availableVisits.map((v, i) => (
+                        <div key={i} className="flex gap-2 items-end bg-slate-50 p-3 rounded-xl border border-slate-200">
+                            <div className="flex-grow">
+                                <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Day</label>
+                                <select
+                                    value={v.day}
+                                    onChange={(e) => updateVisitTime(i, 'day', e.target.value)}
+                                    className="w-full rounded-lg border-slate-200 text-sm focus:ring-primary-500 h-10 border"
+                                >
+                                    {days.map(d => <option key={d} value={d}>{d}</option>)}
+                                </select>
+                            </div>
+                            <div className="flex-grow">
+                                <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Times</label>
+                                <input
+                                    type="text"
+                                    value={v.times}
+                                    onChange={(e) => updateVisitTime(i, 'times', e.target.value)}
+                                    placeholder="e.g. 10 AM - 4 PM"
+                                    className="w-full h-10 rounded-lg border-slate-200 text-sm focus:ring-primary-500 border px-3"
+                                />
+                            </div>
+                            <button onClick={() => removeVisitTime(i)} className="h-10 w-10 flex items-center justify-center bg-white text-red-500 rounded-lg border border-slate-200 hover:bg-red-50">
+                                <Trash2 className="h-4 w-4" />
+                            </button>
+                        </div>
+                    ))}
+                    {formData.availableVisits.length === 0 && (
+                        <div className="text-center py-6 border-2 border-dashed border-slate-200 rounded-xl text-slate-400 text-sm">
+                            No visiting slots added yet.
+                        </div>
+                    )}
+                </div>
+            </div>
         </div>
-        <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">WhatsApp Pre-filled Message</label>
-            <textarea
-                className="w-full rounded-xl border-slate-200 focus:border-primary-500 focus:ring-primary-500 px-4 py-2 border bg-white"
-                rows="3"
-                value={contactDetails.whatsappMsg}
-                onChange={(e) => handleChange({ target: { name: 'contactDetails', value: { ...contactDetails, whatsappMsg: e.target.value } } })}
-                placeholder="Hi, I'm interested in your property..."
-            ></textarea>
-        </div>
-    </div>
-);
+    );
+};
 
 const StepPreview = ({ formData, previews }) => (
     <div className="space-y-6">
@@ -210,28 +302,44 @@ const StepPreview = ({ formData, previews }) => (
         <div className="bg-slate-50 p-6 rounded-xl border border-slate-200">
             <div className="flex gap-4 overflow-x-auto pb-4 mb-4">
                 {previews.map((url, i) => (
-                    <img key={i} src={url} className="h-24 w-24 object-cover rounded-lg flex-shrink-0" />
+                    <div key={i} className="relative flex-shrink-0">
+                        <img src={url} className="h-24 w-24 object-cover rounded-lg" />
+                        {i === 0 && <span className="absolute bottom-0 inset-x-0 bg-primary-600 text-white text-[8px] text-center font-bold py-0.5 rounded-b-lg">COVER</span>}
+                    </div>
                 ))}
             </div>
 
-            <div className="grid grid-cols-2 gap-x-8 gap-y-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                 <div>
-                    <span className="text-sm text-slate-500 block">Property Type</span>
+                    <span className="text-sm text-slate-500 block">Property</span>
                     <span className="font-semibold">{formData.type}</span>
                 </div>
                 <div>
-                    <span className="text-sm text-slate-500 block">Price</span>
-                    <span className="font-semibold">LKR {formData.price} {formData.negotiable ? '(Negotiable)' : ''}</span>
+                    <span className="text-sm text-slate-500 block">Rent</span>
+                    <span className="font-semibold">LKR {formData.price}</span>
                 </div>
                 <div>
                     <span className="text-sm text-slate-500 block">Location</span>
-                    <span className="font-semibold">{formData.town}</span>
+                    <span className="font-semibold capitalize">{formData.town}</span>
                 </div>
                 <div>
-                    <span className="text-sm text-slate-500 block">Size</span>
-                    <span className="font-semibold">{formData.size} sqft</span>
+                    <span className="text-sm text-slate-500 block">Beds/Baths</span>
+                    <span className="font-semibold">{formData.beds}B / {formData.baths}Ba</span>
                 </div>
             </div>
+
+            {formData.availableVisits?.length > 0 && (
+                <div className="border-t border-slate-200 pt-4">
+                    <span className="text-sm text-slate-500 block mb-2 font-bold uppercase tracking-wider">Availability for Visits</span>
+                    <div className="flex flex-wrap gap-2">
+                        {formData.availableVisits.map((v, i) => (
+                            <span key={i} className="px-3 py-1 bg-white border border-slate-200 rounded-full text-xs font-medium">
+                                {v.day}: {v.times}
+                            </span>
+                        ))}
+                    </div>
+                </div>
+            )}
         </div>
     </div>
 );
@@ -292,6 +400,8 @@ const PostAd = () => {
         description: '',
         images: [],
         video: '',
+        virtualTourUrl: '',
+        availableVisits: [],
         isUrgent: false,
         agreementRequired: false,
         availableFrom: new Date().toISOString().split('T')[0],
@@ -335,6 +445,20 @@ const PostAd = () => {
     const removeImage = (index) => {
         setFiles((prev) => prev.filter((_, i) => i !== index));
         setPreviewUrls((prev) => prev.filter((_, i) => i !== index));
+    };
+
+    const moveImage = (index, direction) => {
+        const newFiles = [...files];
+        const newPreviews = [...previewUrls];
+        const targetIndex = index + direction;
+
+        if (targetIndex < 0 || targetIndex >= newFiles.length) return;
+
+        [newFiles[index], newFiles[targetIndex]] = [newFiles[targetIndex], newFiles[index]];
+        [newPreviews[index], newPreviews[targetIndex]] = [newPreviews[targetIndex], newPreviews[index]];
+
+        setFiles(newFiles);
+        setPreviewUrls(newPreviews);
     };
 
     const handleSubmit = async () => {
@@ -398,7 +522,9 @@ const PostAd = () => {
                 availableFrom: formData.availableFrom || new Date(),
                 tenantType: formData.tenantType || 'Any',
                 houseRules: formData.houseRules || '',
-                contactDetails: formData.contactDetails
+                contactDetails: formData.contactDetails,
+                virtualTourUrl: formData.virtualTourUrl,
+                availableVisits: formData.availableVisits
             };
 
             await API.post('/listings', listingData);
@@ -452,10 +578,23 @@ const PostAd = () => {
                         <StepAmenities amenities={formData.amenities} toggle={handleAmenityChange} />
                     )}
                     {currentStep === STEPS.MEDIA && (
-                        <StepMedia files={previewUrls} handleFileChange={handleFileChange} removeImage={removeImage} />
+                        <StepMedia
+                            files={files}
+                            previewUrls={previewUrls}
+                            handleFileChange={handleFileChange}
+                            removeImage={removeImage}
+                            moveImage={moveImage}
+                            formData={formData}
+                            setFormData={setFormData}
+                        />
                     )}
                     {currentStep === STEPS.CONTACT && (
-                        <StepContact contactDetails={formData.contactDetails} handleChange={handleChange} />
+                        <StepContact
+                            contactDetails={formData.contactDetails}
+                            formData={formData}
+                            setFormData={setFormData}
+                            handleChange={handleChange}
+                        />
                     )}
                     {currentStep === STEPS.PREVIEW && (
                         <StepPreview formData={formData} previews={previewUrls} />

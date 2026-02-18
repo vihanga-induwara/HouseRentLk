@@ -4,10 +4,10 @@ import API from '../utils/api';
 import Input from '../components/Input';
 import Button from '../components/Button';
 import { toast } from 'react-hot-toast';
-import { User, Mail, Phone, Camera, Save } from 'lucide-react';
+import { User, Mail, Phone, Camera, Save, ShieldCheck, FileText, AlertCircle, Upload } from 'lucide-react';
 
 const Profile = () => {
-    const { user, login } = useAuth(); // getting login to refresh user data if needed, or context should update
+    const { user } = useAuth();
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
         name: '',
@@ -16,6 +16,9 @@ const Profile = () => {
         bio: '',
         password: '',
     });
+    const [nicFiles, setNicFiles] = useState({ front: null, back: null });
+    const [nicPreviews, setNicPreviews] = useState({ front: null, back: null });
+    const [verifying, setVerifying] = useState(false);
 
     useEffect(() => {
         if (user) {
@@ -33,16 +36,54 @@ const Profile = () => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
+    const handleNicUpload = async (e, side) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        setNicPreviews(prev => ({ ...prev, [side]: URL.createObjectURL(file) }));
+        setNicFiles(prev => ({ ...prev, [side]: file }));
+    };
+
+    const submitVerification = async () => {
+        if (!nicFiles.front || !nicFiles.back) {
+            toast.error('Please upload both sides of your NIC');
+            return;
+        }
+
+        setVerifying(true);
+        try {
+            // 1. Upload images
+            const uploadData = new FormData();
+            uploadData.append('images', nicFiles.front);
+            uploadData.append('images', nicFiles.back);
+
+            const { data: imageUrls } = await API.post('/upload/multiple', uploadData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+
+            // 2. Submit verification request
+            await API.post('/verification', {
+                nicFront: imageUrls[0],
+                nicBack: imageUrls[1]
+            });
+
+            toast.success('Verification submitted successfully!');
+            window.location.reload();
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Submission failed');
+        } finally {
+            setVerifying(false);
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
 
         try {
             const { data } = await API.put('/auth/profile', formData);
-            // Update local storage and context manually if needed, or rely on re-fetch
-            // Ideally AuthContext should have an update function, but we can hack it
             localStorage.setItem('user', JSON.stringify(data));
-            window.location.reload(); // Simple reload to refresh context
+            window.location.reload();
             toast.success('Profile updated successfully!');
         } catch (error) {
             toast.error(error.response?.data?.message || 'Update failed');
@@ -57,7 +98,7 @@ const Profile = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 {/* Sidebar / Avatar */}
-                <div className="md:col-span-1">
+                <div className="md:col-span-1 space-y-6">
                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 text-center">
                         <div className="relative inline-block mb-4">
                             <div className="h-32 w-32 rounded-full bg-primary-100 flex items-center justify-center text-4xl font-bold text-primary-600 mx-auto overflow-hidden">
@@ -83,8 +124,87 @@ const Profile = () => {
                                 <Phone className="h-4 w-4 mr-3 text-slate-400" />
                                 <span className="text-sm">{user?.phone || 'No phone added'}</span>
                             </div>
+                            {user?.isVerified && (
+                                <div className="flex items-center text-primary-600 font-bold bg-primary-50 p-2 rounded-lg">
+                                    <ShieldCheck className="h-4 w-4 mr-2" />
+                                    <span className="text-xs">Verified Owner</span>
+                                </div>
+                            )}
                         </div>
                     </div>
+
+                    {/* Verification Section */}
+                    {user?.role !== 'renter' && (
+                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                            <div className="flex items-center gap-2 mb-4">
+                                <ShieldCheck className={`h-5 w-5 ${user?.isVerified ? 'text-green-500' : 'text-slate-400'}`} />
+                                <h3 className="font-bold text-slate-900">ID Verification</h3>
+                            </div>
+
+                            {user?.verification?.status === 'not_submitted' || user?.verification?.status === 'rejected' ? (
+                                <div className="space-y-4">
+                                    {user?.verification?.status === 'rejected' && (
+                                        <div className="p-3 bg-red-50 border border-red-100 rounded-xl flex gap-3 text-red-700 text-xs">
+                                            <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                                            <div>
+                                                <p className="font-bold">Verification Rejected</p>
+                                                <p>{user?.verification?.message}</p>
+                                            </div>
+                                        </div>
+                                    )}
+                                    <p className="text-xs text-slate-500">Upload your National Identity Card (NIC) to get a verified badge and build trust.</p>
+
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <label className="cursor-pointer">
+                                            <input type="file" className="hidden" onChange={(e) => handleNicUpload(e, 'front')} />
+                                            <div className="aspect-[3/2] border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center bg-slate-50 hover:bg-slate-100 transition-colors overflow-hidden">
+                                                {nicPreviews.front ? <img src={nicPreviews.front} className="w-full h-full object-cover" /> : (
+                                                    <>
+                                                        <Upload className="h-5 w-5 text-slate-400 mb-1" />
+                                                        <span className="text-[10px] font-bold text-slate-500 uppercase">NIC Front</span>
+                                                    </>
+                                                )}
+                                            </div>
+                                        </label>
+                                        <label className="cursor-pointer">
+                                            <input type="file" className="hidden" onChange={(e) => handleNicUpload(e, 'back')} />
+                                            <div className="aspect-[3/2] border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center bg-slate-50 hover:bg-slate-100 transition-colors overflow-hidden">
+                                                {nicPreviews.back ? <img src={nicPreviews.back} className="w-full h-full object-cover" /> : (
+                                                    <>
+                                                        <Upload className="h-5 w-5 text-slate-400 mb-1" />
+                                                        <span className="text-[10px] font-bold text-slate-500 uppercase">NIC Back</span>
+                                                    </>
+                                                )}
+                                            </div>
+                                        </label>
+                                    </div>
+
+                                    <Button
+                                        onClick={submitVerification}
+                                        isLoading={verifying}
+                                        variant="outline"
+                                        fullWidth
+                                        size="sm"
+                                        disabled={!nicFiles.front || !nicFiles.back}
+                                    >
+                                        Submit Request
+                                    </Button>
+                                </div>
+                            ) : user?.verification?.status === 'pending' ? (
+                                <div className="p-4 bg-amber-50 rounded-xl border border-amber-100 text-center">
+                                    <FileText className="h-8 w-8 text-amber-500 mx-auto mb-2" />
+                                    <p className="text-sm font-bold text-amber-800">Verification Pending</p>
+                                    <p className="text-xs text-amber-600 mt-1">Under review by our team.</p>
+                                </div>
+                            ) : (
+                                <div className="p-4 bg-green-50 rounded-xl border border-green-100 text-center">
+                                    <ShieldCheck className="h-8 w-8 text-green-500 mx-auto mb-2" />
+                                    <p className="text-sm font-bold text-green-800">Identity Verified</p>
+                                    <p className="text-xs text-green-600 mt-1">Verified badge is active.</p>
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 {/* Edit Form */}

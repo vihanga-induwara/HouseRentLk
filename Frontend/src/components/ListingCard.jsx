@@ -1,4 +1,4 @@
-import { MapPin, Bed, Bath, Layout, Heart, Share2 } from 'lucide-react';
+import { MapPin, Bed, Bath, Layout, Heart, Share2, ShieldCheck } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-hot-toast';
@@ -27,7 +27,7 @@ const isRecentlyViewed = (listingId) => {
 };
 
 const ListingCard = ({ listing }) => {
-    const { _id, title, price, location, beds, baths, size, images, createdAt } = listing;
+    const { _id, title, price, location, beds, baths, size, images, createdAt, owner } = listing;
     const { isFavorite, toggleFavorite, user } = useAuth();
 
     const displayImage = images && images.length > 0 ? images[0] : 'https://via.placeholder.com/300';
@@ -93,6 +93,12 @@ const ListingCard = ({ listing }) => {
                                 Recently Viewed
                             </div>
                         )}
+                        {owner?.isVerified && (
+                            <div className="bg-blue-500/90 text-white px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide backdrop-blur-sm shadow-sm flex items-center gap-1">
+                                <ShieldCheck className="h-3 w-3" />
+                                Verified
+                            </div>
+                        )}
                     </div>
 
                     {/* Action Buttons (bottom-right of image) */}
@@ -107,8 +113,8 @@ const ListingCard = ({ listing }) => {
                         <button
                             onClick={handleFavorite}
                             className={`backdrop-blur-sm p-2 rounded-full shadow-md hover:scale-110 transition-all duration-200 ${isFav
-                                    ? 'bg-red-500 hover:bg-red-600'
-                                    : 'bg-white/95 hover:bg-white'
+                                ? 'bg-red-500 hover:bg-red-600'
+                                : 'bg-white/95 hover:bg-white'
                                 }`}
                             title={isFav ? 'Remove from favorites' : 'Add to favorites'}
                         >
