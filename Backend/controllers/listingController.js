@@ -35,11 +35,66 @@ const getMyListings = asyncHandler(async (req, res) => {
     res.status(200).json(listings);
 });
 
+const { spawn } = require('child_process');
+const path = require('path');
+
+// Helper to generate AI content
+const generateAIContent = (listingData) => {
+    return new Promise((resolve, reject) => {
+        const scriptPath = path.join(__dirname, '../ai_service.py');
+        const pythonProcess = spawn('python', [scriptPath]);
+
+        let dataString = '';
+
+        pythonProcess.stdin.write(JSON.stringify(listingData));
+        pythonProcess.stdin.end();
+
+        pythonProcess.stdout.on('data', (data) => {
+            dataString += data.toString();
+        });
+
+        pythonProcess.stderr.on('data', (data) => {
+            console.error(`AI Service Error: ${data}`);
+        });
+
+        pythonProcess.on('close', (code) => {
+            if (code !== 0) {
+                console.error(`AI Service exited with code ${code}`);
+                resolve(null); // Return null on error so we don't block creation
+                return;
+            }
+            try {
+                const result = JSON.parse(dataString);
+                resolve(result);
+            } catch (error) {
+                console.error('Failed to parse AI output', error);
+                resolve(null);
+            }
+        });
+    });
+};
+
 // @desc    Create new listing
 // @route   POST /api/listings
 // @access  Private (Owner/Broker)
 const createListing = asyncHandler(async (req, res) => {
     const listingData = { ...req.body, owner: req.user.id, status: 'pending' };
+
+    // Generate AI Description
+    try {
+        const aiContent = await generateAIContent(listingData);
+        if (aiContent) {
+            listingData.aiDescription = {
+                description: aiContent.description,
+                townVibe: aiContent.townVibe,
+                generatedAt: new Date()
+            };
+        }
+    } catch (error) {
+        console.error("AI Generation failed", error);
+        // Continue creating listing without AI content
+    }
+
     const listing = await Listing.create(listingData);
     res.status(201).json(listing);
 });
@@ -64,6 +119,24 @@ const updateListing = asyncHandler(async (req, res) => {
     let updateData = req.body;
     if (req.user.role !== 'admin') {
         updateData.status = 'pending';
+    }
+
+    // Refresh AI Content if critical fields change
+    if (updateData.description || updateData.location || updateData.amenities) {
+        // Merge current listing data with update data for context
+        const contextData = { ...listing.toObject(), ...updateData };
+        try {
+            const aiContent = await generateAIContent(contextData);
+            if (aiContent) {
+                updateData.aiDescription = {
+                    description: aiContent.description,
+                    townVibe: aiContent.townVibe,
+                    generatedAt: new Date()
+                };
+            }
+        } catch (error) {
+            console.error("AI Update failed", error);
+        }
     }
 
     const updatedListing = await Listing.findByIdAndUpdate(req.params.id, updateData, { new: true });

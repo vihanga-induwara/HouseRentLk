@@ -1,79 +1,28 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import ListingCard from '../components/ListingCard';
+import API from '../utils/api';
 import Input from '../components/Input';
 import Button from '../components/Button';
 import { Filter, SlidersHorizontal, Search, Check } from 'lucide-react';
 
 const Browse = () => {
-    // Mock data - same as before
-    const allListings = [
-        {
-            id: 1,
-            title: 'Modern House in Negombo',
-            price: 45000,
-            location: 'Negombo, Western Province',
-            beds: 3,
-            baths: 2,
-            size: 1500,
-            image: 'https://images.unsplash.com/photo-1568605114967-8130f3a36994',
-            amenities: ['AC', 'Parking', 'Garden'],
-        },
-        {
-            id: 2,
-            title: 'Luxury Villa with Pool',
-            price: 120000,
-            location: 'Colombo 07, Western Province',
-            beds: 4,
-            baths: 4,
-            size: 3200,
-            image: 'https://images.unsplash.com/photo-1613977257363-707ba9348227',
-            amenities: ['Pool', 'AC', 'Parking', 'Servant Quarters'],
-        },
-        {
-            id: 3,
-            title: 'Cozy Family Home',
-            price: 35000,
-            location: 'Kandy, Central Province',
-            beds: 2,
-            baths: 1,
-            size: 1100,
-            image: 'https://images.unsplash.com/photo-1570129477492-45c003edd2be',
-            amenities: ['Garden', 'Parking'],
-        },
-        {
-            id: 4,
-            title: 'Beachside Bungalow',
-            price: 65000,
-            location: 'Galle, Southern Province',
-            beds: 3,
-            baths: 2,
-            size: 1800,
-            image: 'https://images.unsplash.com/photo-1499793983690-e29da59ef1c2',
-            amenities: ['Garden', 'Beach View'],
-        },
-        {
-            id: 5,
-            title: 'Apartment in Dehiwala',
-            price: 55000,
-            location: 'Dehiwala, Western Province',
-            beds: 2,
-            baths: 2,
-            size: 1000,
-            image: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267',
-            amenities: ['AC', 'Security'],
-        },
-        {
-            id: 6,
-            title: 'Spacious House in Gampaha',
-            price: 40000,
-            location: 'Gampaha, Western Province',
-            beds: 4,
-            baths: 3,
-            size: 2000,
-            image: 'https://images.unsplash.com/photo-1600596542815-225bf729808e',
-            amenities: ['Garden', 'Parking', 'Well Water'],
-        },
-    ];
+    const [listings, setListings] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchListings = async () => {
+            try {
+                const res = await API.get('/listings');
+                setListings(res.data);
+            } catch (error) {
+                console.error("Failed to fetch listings", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchListings();
+    }, []);
 
     const [showFilters, setShowFilters] = useState(false);
 
@@ -171,14 +120,18 @@ const Browse = () => {
             <main className="lg:w-3/4">
                 <div className="flex justify-between items-center mb-6">
                     <h1 className="text-2xl font-bold text-slate-900">Properties for Rent</h1>
-                    <span className="text-slate-500 text-sm font-medium">6 results found</span>
+                    <span className="text-slate-500 text-sm font-medium">{listings.length} results found</span>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                    {allListings.map((listing) => (
-                        <ListingCard key={listing.id} listing={listing} />
-                    ))}
-                </div>
+                {loading ? (
+                    <div className="flex justify-center items-center h-64">Loading...</div>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                        {listings.map((listing) => (
+                            <ListingCard key={listing._id} listing={listing} />
+                        ))}
+                    </div>
+                )}
 
                 {/* Pagination - Modernized */}
                 <div className="mt-16 flex justify-center">

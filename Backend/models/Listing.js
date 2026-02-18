@@ -97,6 +97,20 @@ const listingSchema = mongoose.Schema(
             type: Number,
             default: 0,
         },
+        // Contact Details
+        contactDetails: {
+            phone2: { type: String },
+            whatsapp: { type: String },
+            whatsappMsg: { type: String, default: "Hi, I'm interested in this property." },
+            availableTimes: { type: String }, // e.g., "Weekdays 9 AM - 5 PM"
+            email: { type: String }, // Optional override
+        },
+        // AI Generated Content
+        aiDescription: {
+            description: { type: String },
+            townVibe: { type: String },
+            generatedAt: { type: Date },
+        },
     },
     {
         timestamps: true,

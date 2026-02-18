@@ -1,41 +1,29 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import API from '../utils/api';
 import { Search, MapPin, ArrowRight } from 'lucide-react';
 import Button from '../components/Button';
 import ListingCard from '../components/ListingCard';
 
 const Home = () => {
-    const featuredListings = [
-        {
-            id: 1,
-            title: 'Modern House in Negombo',
-            price: 45000,
-            location: 'Negombo, Western Province',
-            beds: 3,
-            baths: 2,
-            size: 1500,
-            image: 'https://images.unsplash.com/photo-1568605114967-8130f3a36994?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80',
-        },
-        {
-            id: 2,
-            title: 'Luxury Villa with Pool',
-            price: 120000,
-            location: 'Colombo 07, Western Province',
-            beds: 4,
-            baths: 4,
-            size: 3200,
-            image: 'https://images.unsplash.com/photo-1613977257363-707ba9348227?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80',
-        },
-        {
-            id: 3,
-            title: 'Cozy Family Home',
-            price: 35000,
-            location: 'Kandy, Central Province',
-            beds: 2,
-            baths: 1,
-            size: 1100,
-            image: 'https://images.unsplash.com/photo-1570129477492-45c003edd2be?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2071&q=80',
-        },
-    ];
+    const [featuredListings, setFeaturedListings] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchFeatured = async () => {
+            try {
+                const res = await API.get('/listings');
+                // Slice to get top 3 or whatever logic for featured
+                setFeaturedListings(res.data.slice(0, 3));
+            } catch (error) {
+                console.error("Failed to fetch featured listings", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchFeatured();
+    }, []);
 
     return (
         <div className="space-y-24">
@@ -94,7 +82,7 @@ const Home = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                     {featuredListings.map((listing) => (
-                        <ListingCard key={listing.id} listing={listing} />
+                        <ListingCard key={listing._id} listing={listing} />
                     ))}
                 </div>
             </section>

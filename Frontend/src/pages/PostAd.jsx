@@ -164,6 +164,45 @@ const StepMedia = ({ files, handleFileChange, removeImage }) => (
     </div>
 );
 
+const StepContact = ({ contactDetails, handleChange }) => (
+    <div className="space-y-4">
+        <h2 className="text-2xl font-bold mb-6 text-slate-900">Contact Preferences</h2>
+        <Input
+            label="Alternative Phone (Optional)"
+            name="phone2"
+            value={contactDetails.phone2}
+            onChange={(e) => handleChange({ target: { name: 'contactDetails', value: { ...contactDetails, phone2: e.target.value } } })}
+            placeholder="e.g. 0771234567"
+        />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Input
+                label="WhatsApp Number"
+                name="whatsapp"
+                value={contactDetails.whatsapp}
+                onChange={(e) => handleChange({ target: { name: 'contactDetails', value: { ...contactDetails, whatsapp: e.target.value } } })}
+                placeholder="e.g. 94771234567"
+            />
+            <Input
+                label="Available Calling Times"
+                name="availableTimes"
+                value={contactDetails.availableTimes}
+                onChange={(e) => handleChange({ target: { name: 'contactDetails', value: { ...contactDetails, availableTimes: e.target.value } } })}
+                placeholder="e.g. Weekdays 9 AM - 6 PM"
+            />
+        </div>
+        <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">WhatsApp Pre-filled Message</label>
+            <textarea
+                className="w-full rounded-xl border-slate-200 focus:border-primary-500 focus:ring-primary-500 px-4 py-2 border bg-white"
+                rows="3"
+                value={contactDetails.whatsappMsg}
+                onChange={(e) => handleChange({ target: { name: 'contactDetails', value: { ...contactDetails, whatsappMsg: e.target.value } } })}
+                placeholder="Hi, I'm interested in your property..."
+            ></textarea>
+        </div>
+    </div>
+);
+
 const StepPreview = ({ formData, previews }) => (
     <div className="space-y-6">
         <h2 className="text-2xl font-bold text-slate-900">Review your Listing</h2>
@@ -206,7 +245,8 @@ const STEPS = {
     DETAILS: 3,
     AMENITIES: 4,
     MEDIA: 5,
-    PREVIEW: 6,
+    CONTACT: 6,
+    PREVIEW: 7,
 };
 
 const PostAd = () => {
@@ -241,6 +281,12 @@ const PostAd = () => {
             security: false,
             garden: false,
             waterSupply: 'Tap',
+        },
+        contactDetails: {
+            phone2: '',
+            whatsapp: '',
+            whatsappMsg: "Hi, I'm interested in this property.",
+            availableTimes: '',
         },
         title: '',
         description: '',
@@ -351,7 +397,8 @@ const PostAd = () => {
                 agreementRequired: formData.agreementRequired || false,
                 availableFrom: formData.availableFrom || new Date(),
                 tenantType: formData.tenantType || 'Any',
-                houseRules: formData.houseRules || ''
+                houseRules: formData.houseRules || '',
+                contactDetails: formData.contactDetails
             };
 
             await API.post('/listings', listingData);
@@ -379,7 +426,7 @@ const PostAd = () => {
                 <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
                     <div
                         className="h-full bg-primary-500 transition-all duration-300 ease-out"
-                        style={{ width: `${((currentStep + 1) / 7) * 100}%` }}
+                        style={{ width: `${((currentStep + 1) / 8) * 100}%` }}
                     ></div>
                 </div>
             </div>
@@ -406,6 +453,9 @@ const PostAd = () => {
                     )}
                     {currentStep === STEPS.MEDIA && (
                         <StepMedia files={previewUrls} handleFileChange={handleFileChange} removeImage={removeImage} />
+                    )}
+                    {currentStep === STEPS.CONTACT && (
+                        <StepContact contactDetails={formData.contactDetails} handleChange={handleChange} />
                     )}
                     {currentStep === STEPS.PREVIEW && (
                         <StepPreview formData={formData} previews={previewUrls} />
