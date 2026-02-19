@@ -404,6 +404,9 @@ const PostAd = () => {
             security: false,
             garden: false,
             waterSupply: 'Tap',
+            servantQuarters: false,
+            templeDistance: '',
+            mainRoadDistance: '',
         },
         contactDetails: {
             phone2: '',
@@ -435,12 +438,12 @@ const PostAd = () => {
         }));
     };
 
-    const handleAmenityChange = (name) => {
+    const handleAmenityChange = (name, value) => {
         setFormData((prev) => ({
             ...prev,
             amenities: {
                 ...prev.amenities,
-                [name]: !prev.amenities[name],
+                [name]: value !== undefined ? value : !prev.amenities[name],
             },
         }));
     };

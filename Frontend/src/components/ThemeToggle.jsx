@@ -8,14 +8,33 @@ const ThemeToggle = () => {
     return (
         <button
             onClick={toggleTheme}
-            className="p-2.5 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all duration-300 border border-slate-200 dark:border-slate-700 active:scale-95"
-            title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+            aria-label={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            style={{ transition: 'background 0.3s, border-color 0.3s' }}
+            className={`
+                relative flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold
+                border transition-all duration-300 select-none
+                ${isDarkMode
+                    ? 'bg-slate-800 border-slate-600 text-amber-300 hover:bg-slate-700'
+                    : 'bg-slate-100 border-slate-200 text-slate-600 hover:bg-slate-200'
+                }
+                active:scale-95
+            `}
         >
-            {isDarkMode ? (
-                <Sun className="h-5 w-5 animate-spin-slow" />
-            ) : (
-                <Moon className="h-5 w-5" />
-            )}
+            <span
+                style={{
+                    display: 'inline-flex',
+                    transform: isDarkMode ? 'rotate(0deg)' : 'rotate(180deg)',
+                    transition: 'transform 0.5s ease',
+                }}
+            >
+                {isDarkMode ? (
+                    <Sun className="h-4 w-4 text-amber-300" />
+                ) : (
+                    <Moon className="h-4 w-4 text-slate-500" />
+                )}
+            </span>
+            <span>{isDarkMode ? 'Light' : 'Dark'}</span>
         </button>
     );
 };

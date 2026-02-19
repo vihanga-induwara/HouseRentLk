@@ -26,25 +26,31 @@
   --color-secondary-950: #172554;
 }
 
-/* Custom Base Styles */
+/* ─── Dark Mode: class-based (.dark on <html>) ───────────── */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Custom CSS Variables */
 :root {
-  --bg-color: #f8fafc; /* slate-50 */
-  --text-color: #1e293b; /* slate-800 */
+  --bg-color: #f8fafc;
+  /* slate-50  */
+  --text-color: #1e293b;
+  /* slate-800 */
 }
 
 .dark {
-  --bg-color: #0f172a; /* slate-900 */
-  --text-color: #f1f5f9; /* slate-100 */
+  --bg-color: #0f172a;
+  /* slate-900 */
+  --text-color: #f1f5f9;
+  /* slate-100 */
 }
 
+/* Base body styles */
 body {
-  @apply font-sans antialiased transition-colors duration-300;
   background-color: var(--bg-color);
   color: var(--text-color);
-}
-
-.dark body {
-  @apply bg-slate-900 text-slate-100;
+  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* Scrollbar Customization */
@@ -53,13 +59,22 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  @apply bg-transparent;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-slate-300 rounded-full;
+  background: #cbd5e1;
+  border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-slate-400;
+  background: #94a3b8;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #475569;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
 }

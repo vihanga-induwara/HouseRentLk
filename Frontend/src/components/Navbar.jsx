@@ -28,7 +28,9 @@ const Navbar = () => {
 
     return (
         <nav
-            className={`fixed w-full z-50 transition-all duration-300 ${scrolled ? 'bg-white/80 backdrop-blur-md shadow-sm py-4' : 'bg-transparent py-6'
+            className={`fixed w-full z-50 transition-all duration-300 ${scrolled
+                ? 'bg-white/90 dark:bg-slate-900/90 backdrop-blur-md shadow-sm dark:shadow-slate-800/50 py-4'
+                : 'bg-transparent py-6'
                 }`}
         >
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -38,7 +40,7 @@ const Navbar = () => {
                         <div className="bg-primary-500 rounded-lg p-1.5 text-white transition-transform group-hover:scale-110">
                             <Home className="h-5 w-5" />
                         </div>
-                        <span className={`text-xl font-bold tracking-tight ${scrolled ? 'text-slate-900' : 'text-slate-900'}`}>
+                        <span className={`text-xl font-bold tracking-tight ${scrolled ? 'text-slate-900 dark:text-slate-100' : 'text-slate-900 dark:text-slate-100'}`}>
                             HouseRent<span className="text-primary-500">Lk</span>
                         </span>
                     </Link>
@@ -49,7 +51,7 @@ const Navbar = () => {
                             <Link
                                 key={link.name}
                                 to={link.path}
-                                className="text-sm font-medium text-slate-600 hover:text-primary-600 transition-colors"
+                                className="text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
                             >
                                 {link.name}
                             </Link>
@@ -61,7 +63,7 @@ const Navbar = () => {
                         <ThemeToggle />
                         {user ? (
                             <div className="flex items-center gap-4">
-                                <span className="text-sm font-medium text-slate-700">
+                                <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
                                     Welcome, {user.name}
                                 </span>
                                 <Link to="/post-ad">
@@ -129,10 +131,11 @@ const Navbar = () => {
                     </div>
 
                     {/* Mobile Menu Button */}
-                    <div className="md:hidden flex items-center">
+                    <div className="md:hidden flex items-center gap-2">
+                        <ThemeToggle />
                         <button
                             onClick={() => setIsOpen(!isOpen)}
-                            className="text-slate-600 hover:text-primary-600 focus:outline-none"
+                            className="text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 focus:outline-none"
                         >
                             {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
                         </button>
@@ -142,26 +145,26 @@ const Navbar = () => {
 
             {/* Mobile Menu */}
             {isOpen && (
-                <div className="md:hidden absolute top-full left-0 w-full bg-white border-b border-gray-100 shadow-lg py-4 px-4 flex flex-col space-y-4">
+                <div className="md:hidden absolute top-full left-0 w-full bg-white dark:bg-slate-900 border-b border-gray-100 dark:border-slate-700 shadow-lg dark:shadow-slate-800/50 py-4 px-4 flex flex-col space-y-4">
                     {navLinks.map((link) => (
                         <Link
                             key={link.name}
                             to={link.path}
                             onClick={() => setIsOpen(false)}
-                            className="text-base font-medium text-slate-600 hover:text-primary-600"
+                            className="text-base font-medium text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400"
                         >
                             {link.name}
                         </Link>
                     ))}
                     <div className="flex items-center justify-between px-2">
-                        <span className="text-sm font-medium text-slate-500">Theme</span>
+                        <span className="text-sm font-medium text-slate-500 dark:text-slate-400">Theme</span>
                         <ThemeToggle />
                     </div>
-                    <div className="h-px bg-gray-100 my-2"></div>
+                    <div className="h-px bg-gray-100 dark:bg-slate-700 my-2"></div>
 
                     {user ? (
                         <>
-                            <span className="text-base font-medium text-slate-700 block px-2">
+                            <span className="text-base font-medium text-slate-700 dark:text-slate-200 block px-2">
                                 Hi, {user.name}
                             </span>
                             <Link to="/my-listings" onClick={() => setIsOpen(false)}>

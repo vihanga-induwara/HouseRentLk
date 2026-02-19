@@ -69,6 +69,9 @@ const listingSchema = mongoose.Schema(
             security: { type: Boolean, default: false },
             garden: { type: Boolean, default: false },
             waterSupply: { type: String, enum: ['Tap', 'Well', 'Both'], default: 'Tap' },
+            servantQuarters: { type: Boolean, default: false },
+            templeDistance: { type: Number }, // km
+            mainRoadDistance: { type: Number }, // km
         },
 
         // Media

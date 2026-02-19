@@ -505,6 +505,27 @@ const bulkUploadListings = asyncHandler(async (req, res) => {
         });
 });
 
+// @desc    Get similar listings
+// @route   GET /api/listings/:id/similar
+// @access  Public
+const getSimilarListings = asyncHandler(async (req, res) => {
+    const listing = await Listing.findById(req.params.id);
+
+    if (!listing) {
+        res.status(404);
+        throw new Error('Listing not found');
+    }
+
+    const similar = await Listing.find({
+        _id: { $ne: listing._id },
+        'location.town': listing.location.town,
+        type: listing.type,
+        status: 'approved'
+    }).limit(4);
+
+    res.status(200).json(similar);
+});
+
 module.exports = {
     getListings,
     getListing,
@@ -520,4 +541,5 @@ module.exports = {
     duplicateListing,
     getMarketInsights,
     bulkUploadListings,
+    getSimilarListings
 };
