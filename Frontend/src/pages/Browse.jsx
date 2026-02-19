@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import ListingCard from '../components/ListingCard';
+import ExternalListingCard from '../components/ExternalListingCard';
 import API from '../utils/api';
 import Button from '../components/Button';
 import { formatCurrency } from '../utils/format';
 import { toast } from 'react-hot-toast';
-import { Bell, Sparkles, MapPin, Layout, Filter, SlidersHorizontal, Search, AlertTriangle, ArrowUpDown, X } from 'lucide-react';
+import { Bell, Sparkles, MapPin, Layout, Filter, SlidersHorizontal, Search, AlertTriangle, ArrowUpDown, X, Loader2, Zap } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -58,6 +59,8 @@ const Browse = () => {
     const [fetchError, setFetchError] = useState(null);
     const [resultsStats, setResultsStats] = useState({ total: 0, pages: 1 });
     const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'map'
+    const [nlpQuery, setNlpQuery] = useState('');
+    const [nlpParsing, setNlpParsing] = useState(false);
     const [showFilters, setShowFilters] = useState(false);
 
     // Parse filters directly from URL params each render — single source of truth
@@ -73,6 +76,7 @@ const Browse = () => {
         parking: searchParams.get('parking') === 'true',
         wifi: searchParams.get('wifi') === 'true',
         page: Number(searchParams.get('page')) || 1,
+        source: searchParams.get('source') || 'internal', // 'internal' or 'external'
     }), [searchParams]);
 
     const [filters, setFilters] = useState(getFiltersFromParams);
@@ -88,14 +92,21 @@ const Browse = () => {
         try {
             const params = new URLSearchParams();
             Object.entries(currentFilters).forEach(([key, value]) => {
-                if (value !== '' && value !== 'Any' && value !== false && value !== 0) {
+                if (value !== '' && value !== 'Any' && value !== false && value !== 0 && key !== 'source') {
                     params.append(key, String(value));
                 }
             });
 
-            const res = await API.get(`/listings?${params.toString()}`);
-            setListings(res.data.data);
-            setResultsStats({ total: res.data.total, pages: res.data.pages });
+            const endpoint = currentFilters.source === 'external' ? '/scraping/external-listings' : '/listings';
+            const res = await API.get(`${endpoint}?${params.toString()}`);
+
+            if (currentFilters.source === 'external') {
+                setListings(res.data.listings || []);
+                setResultsStats({ total: res.data.total, pages: res.data.pages });
+            } else {
+                setListings(res.data.data);
+                setResultsStats({ total: res.data.total, pages: res.data.pages });
+            }
         } catch (error) {
             console.error('Failed to fetch listings', error);
             setFetchError('Unable to load listings. Please check your connection and try again.');
@@ -129,7 +140,8 @@ const Browse = () => {
     const resetFilters = () => {
         const reset = {
             town: '', minPrice: '', maxPrice: '', beds: '', type: 'Any',
-            furnished: 'Any', sort: '', ac: false, parking: false, wifi: false, page: 1
+            furnished: 'Any', sort: '', ac: false, parking: false, wifi: false, page: 1,
+            source: 'internal'
         };
         setFilters(reset);
         setSearchParams({});
@@ -147,6 +159,32 @@ const Browse = () => {
             toast.error(error.response?.data?.message || 'Failed to save search');
         }
     };
+
+    const handleNlpSearch = useCallback(async () => {
+        if (!nlpQuery.trim() || nlpParsing) return;
+        setNlpParsing(true);
+        try {
+            const res = await API.post('/ai/nlp-search', { query: nlpQuery.trim() });
+            const parsed = res.data.parsed_filters || {};
+            const newParams = new URLSearchParams();
+            if (parsed.town) newParams.set('town', parsed.town);
+            if (parsed.beds) newParams.set('beds', String(parsed.beds));
+            if (parsed.minPrice) newParams.set('minPrice', String(parsed.minPrice));
+            if (parsed.maxPrice) newParams.set('maxPrice', String(parsed.maxPrice));
+            if (parsed.type) newParams.set('type', parsed.type);
+            if (parsed.furnished) newParams.set('furnished', parsed.furnished);
+            if (parsed.amenities?.ac) newParams.set('ac', 'true');
+            if (parsed.amenities?.parking) newParams.set('parking', 'true');
+            if (parsed.amenities?.wifi) newParams.set('wifi', 'true');
+            newParams.set('page', '1');
+            setSearchParams(newParams);
+            toast.success(`Smart search applied (${res.data.confidence} confidence)`);
+        } catch {
+            toast.error('Smart search failed. Try regular filters.');
+        } finally {
+            setNlpParsing(false);
+        }
+    }, [nlpQuery, nlpParsing, setSearchParams]);
 
     return (
         <div className="max-w-[1400px] mx-auto px-4 py-8">
@@ -324,7 +362,7 @@ const Browse = () => {
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-6">
                         <div>
                             <h1 className="text-4xl font-black text-slate-900 dark:text-white italic tracking-tighter mb-2">Available <span className="text-primary-600">Inventory</span></h1>
-                            <div className="flex flex-col md:flex-row md:items-center gap-3">
+                            <div className="flex flex-col md:flex-row md:items-center gap-3 mb-4">
                                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{resultsStats.total} Properties discovered</span>
                                 <button
                                     onClick={handleSaveSearch}
@@ -332,6 +370,39 @@ const Browse = () => {
                                     aria-label="Save this search"
                                 >
                                     <Bell className="h-3 w-3" /> Save this Search
+                                </button>
+                            </div>
+
+                            <div className="flex items-center gap-3">
+                                <button
+                                    onClick={() => {
+                                        handleFilterChange('source', 'internal');
+                                        const newParams = new URLSearchParams(searchParams);
+                                        newParams.set('source', 'internal');
+                                        newParams.set('page', '1');
+                                        setSearchParams(newParams);
+                                    }}
+                                    className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${filters.source !== 'external'
+                                        ? 'bg-slate-900 text-white shadow-lg'
+                                        : 'bg-white text-slate-500 hover:bg-slate-50 border border-slate-200'
+                                        }`}
+                                >
+                                    Local Listings
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        handleFilterChange('source', 'external');
+                                        const newParams = new URLSearchParams(searchParams);
+                                        newParams.set('source', 'external');
+                                        newParams.set('page', '1');
+                                        setSearchParams(newParams);
+                                    }}
+                                    className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${filters.source === 'external'
+                                        ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30'
+                                        : 'bg-white text-slate-500 hover:bg-slate-50 border border-slate-200'
+                                        }`}
+                                >
+                                    External (Beta)
                                 </button>
                             </div>
                         </div>
@@ -377,124 +448,164 @@ const Browse = () => {
                         </div>
                     </div>
 
-                    {/* Error state */}
-                    {fetchError && !loading && (
-                        <div className="bg-red-50 dark:bg-red-900/20 border-2 border-dashed border-red-200 dark:border-red-800 rounded-[3rem] p-16 text-center mb-8">
-                            <AlertTriangle className="w-12 h-12 text-red-400 mx-auto mb-4" />
-                            <h3 className="text-xl font-black text-red-700 dark:text-red-400 mb-2 italic">Could Not Load Listings</h3>
-                            <p className="text-red-500 dark:text-red-300 font-bold mb-6 text-sm">{fetchError}</p>
-                            <Button onClick={() => fetchListings(filters)} variant="outline" className="rounded-2xl font-black uppercase tracking-widest text-xs border-2 border-red-200 text-red-600 hover:bg-red-50">
-                                Try Again
-                            </Button>
+                    {/* AI Smart Search Bar */}
+                    <div className="mb-8 bg-gradient-to-r from-violet-50 to-indigo-50 dark:from-violet-900/20 dark:to-indigo-900/20 p-5 rounded-3xl border border-violet-100 dark:border-violet-800">
+                        <div className="flex items-center gap-2 mb-3">
+                            <Zap className="h-4 w-4 text-violet-600" />
+                            <span className="text-[10px] font-black text-violet-600 uppercase tracking-widest">AI Smart Search</span>
                         </div>
-                    )}
-
-                    {loading ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                            {[...Array(6)].map((_, i) => <div key={i} className="h-96 bg-slate-50 dark:bg-slate-800 rounded-[2.5rem] animate-pulse border-2 border-slate-100 dark:border-slate-700"></div>)}
-                        </div>
-                    ) : viewMode === 'grid' ? (
-                        <>
-                            {listings.length === 0 && !fetchError ? (
-                                <div className="bg-white dark:bg-slate-800 rounded-[3rem] p-24 text-center border-2 border-dashed border-slate-200 dark:border-slate-700">
-                                    <div className="w-24 h-24 bg-slate-50 dark:bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-8">
-                                        <Search className="w-10 h-10 text-slate-300 dark:text-slate-500" />
-                                    </div>
-                                    <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-4 italic tracking-tight">Zero Matches Found</h3>
-                                    <p className="text-slate-500 font-bold max-w-sm mx-auto mb-10 italic">We couldn&apos;t find any properties matching your exact criteria. Try broadening your search.</p>
-                                    <Button onClick={resetFilters} variant="outline" className="rounded-2xl px-10 py-4 font-black uppercase tracking-widest text-[10px] border-2 border-slate-200">Clear Filters</Button>
-                                </div>
-                            ) : (
-                                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-10">
-                                    {listings.map((listing) => (
-                                        <ListingCard key={listing._id} listing={listing} />
-                                    ))}
-                                </div>
-                            )}
-                        </>
-                    ) : (
-                        /* Interactive Map */
-                        <div className="relative h-[750px] bg-slate-100 dark:bg-slate-800 rounded-[3rem] overflow-hidden shadow-2xl group border-4 border-white dark:border-slate-700 z-0">
-                            <MapContainer
-                                center={[7.8731, 80.7718]}
-                                zoom={8}
-                                scrollWheelZoom={true}
-                                style={{ height: '100%', width: '100%' }}
+                        <div className="flex gap-3">
+                            <div className="flex-1 relative">
+                                <Sparkles className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-violet-400" />
+                                <input
+                                    type="text"
+                                    value={nlpQuery}
+                                    onChange={(e) => setNlpQuery(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && handleNlpSearch()}
+                                    placeholder='Try: "2 bed house in Kandy under 30k" or "furnished apartment with parking"'
+                                    className="w-full pl-11 pr-4 py-4 text-sm font-bold rounded-2xl border-2 border-violet-100 dark:border-violet-700 bg-white dark:bg-slate-800 focus:border-violet-400 outline-none dark:text-white transition-all"
+                                />
+                            </div>
+                            <button
+                                onClick={handleNlpSearch}
+                                disabled={nlpParsing || !nlpQuery.trim()}
+                                className="px-6 py-4 bg-violet-600 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2 shadow-xl shadow-violet-500/20"
                             >
-                                <ChangeView
-                                    center={filters.town && listings.length > 0 && listings[0].location?.coordinates?.coordinates
-                                        ? [listings[0].location.coordinates.coordinates[1], listings[0].location.coordinates.coordinates[0]]
-                                        : [7.8731, 80.7718]}
-                                    zoom={filters.town ? 12 : 8}
-                                />
-                                <TileLayer
-                                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                                />
-                                {listings.map((l) => (
-                                    l.location && l.location.coordinates && l.location.coordinates.coordinates?.length === 2 && (
-                                        <Marker
-                                            key={l._id}
-                                            position={[
-                                                l.location.coordinates.coordinates[1], // lat
-                                                l.location.coordinates.coordinates[0]  // lng
-                                            ]}
-                                        >
-                                            <Popup className="custom-popup">
-                                                <div className="w-48">
-                                                    <img src={l.images?.[0]} className="w-full h-24 object-cover rounded-lg mb-2" alt={l.title} loading="lazy" />
-                                                    <h3 className="font-bold text-sm truncate">{l.title}</h3>
-                                                    <p className="text-primary-600 font-bold text-xs">{formatCurrency(l.price)}</p>
-                                                    {/* Use React Link via navigate – Popup renders outside React tree so we use a plain anchor with full reload prevention */}
-                                                    <Link to={`/listings/${l._id}`} className="block mt-2 text-center text-[10px] bg-slate-900 text-white py-1 rounded hover:bg-primary-600 transition-colors">View Details</Link>
-                                                </div>
-                                            </Popup>
-                                        </Marker>
-                                    )
-                                ))}
-                            </MapContainer>
+                                {nlpParsing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                                {nlpParsing ? 'Parsing...' : 'Search'}
+                            </button>
+                        </div>
+                        <p className="text-[10px] text-violet-400 mt-2 font-bold">Describe what you're looking for in plain language — our AI will find it.</p>
+                    </div>
 
-                            {/* Map UI Overlays */}
-                            <div className="absolute top-4 left-4 z-[400] flex flex-col gap-4 pointer-events-none">
-                                <div className="bg-white/90 backdrop-blur-md p-4 rounded-[1.5rem] shadow-xl max-w-xs border border-white/50 pointer-events-auto">
-                                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 flex items-center gap-2">
-                                        <Sparkles className="h-3 w-3 text-primary-500" /> Live View
-                                    </h4>
-                                    <p className="text-slate-900 font-bold italic text-sm leading-snug">
-                                        {listings.length} properties found in this area.
-                                    </p>
+                    {/* Error state */}
+                    {
+                        fetchError && !loading && (
+                            <div className="bg-red-50 dark:bg-red-900/20 border-2 border-dashed border-red-200 dark:border-red-800 rounded-[3rem] p-16 text-center mb-8">
+                                <AlertTriangle className="w-12 h-12 text-red-400 mx-auto mb-4" />
+                                <h3 className="text-xl font-black text-red-700 dark:text-red-400 mb-2 italic">Could Not Load Listings</h3>
+                                <p className="text-red-500 dark:text-red-300 font-bold mb-6 text-sm">{fetchError}</p>
+                                <Button onClick={() => fetchListings(filters)} variant="outline" className="rounded-2xl font-black uppercase tracking-widest text-xs border-2 border-red-200 text-red-600 hover:bg-red-50">
+                                    Try Again
+                                </Button>
+                            </div>
+                        )
+                    }
+
+                    {
+                        loading ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                                {[...Array(6)].map((_, i) => <div key={i} className="h-96 bg-slate-50 dark:bg-slate-800 rounded-[2.5rem] animate-pulse border-2 border-slate-100 dark:border-slate-700"></div>)}
+                            </div>
+                        ) : viewMode === 'grid' ? (
+                            <>
+                                {listings.length === 0 && !fetchError ? (
+                                    <div className="bg-white dark:bg-slate-800 rounded-[3rem] p-24 text-center border-2 border-dashed border-slate-200 dark:border-slate-700">
+                                        <div className="w-24 h-24 bg-slate-50 dark:bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-8">
+                                            <Search className="w-10 h-10 text-slate-300 dark:text-slate-500" />
+                                        </div>
+                                        <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-4 italic tracking-tight">Zero Matches Found</h3>
+                                        <p className="text-slate-500 font-bold max-w-sm mx-auto mb-10 italic">We couldn&apos;t find any properties matching your exact criteria. Try broadening your search.</p>
+                                        <Button onClick={resetFilters} variant="outline" className="rounded-2xl px-10 py-4 font-black uppercase tracking-widest text-[10px] border-2 border-slate-200">Clear Filters</Button>
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-10">
+                                        {listings.map((listing) => (
+                                            filters.source === 'external' ? (
+                                                <ExternalListingCard key={listing._id} listing={listing} />
+                                            ) : (
+                                                <ListingCard key={listing._id} listing={listing} />
+                                            )
+                                        ))}
+                                    </div>
+                                )}
+                            </>
+                        ) : (
+                            /* Interactive Map */
+                            <div className="relative h-[750px] bg-slate-100 dark:bg-slate-800 rounded-[3rem] overflow-hidden shadow-2xl group border-4 border-white dark:border-slate-700 z-0">
+                                <MapContainer
+                                    center={[7.8731, 80.7718]}
+                                    zoom={8}
+                                    scrollWheelZoom={true}
+                                    style={{ height: '100%', width: '100%' }}
+                                >
+                                    <ChangeView
+                                        center={filters.town && listings.length > 0 && listings[0].location?.coordinates?.coordinates
+                                            ? [listings[0].location.coordinates.coordinates[1], listings[0].location.coordinates.coordinates[0]]
+                                            : [7.8731, 80.7718]}
+                                        zoom={filters.town ? 12 : 8}
+                                    />
+                                    <TileLayer
+                                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                                    />
+                                    {listings.map((l) => (
+                                        l.location && l.location.coordinates && l.location.coordinates.coordinates?.length === 2 && (
+                                            <Marker
+                                                key={l._id}
+                                                position={[
+                                                    l.location.coordinates.coordinates[1], // lat
+                                                    l.location.coordinates.coordinates[0]  // lng
+                                                ]}
+                                            >
+                                                <Popup className="custom-popup">
+                                                    <div className="w-48">
+                                                        <img src={l.images?.[0]} className="w-full h-24 object-cover rounded-lg mb-2" alt={l.title} loading="lazy" />
+                                                        <h3 className="font-bold text-sm truncate">{l.title}</h3>
+                                                        <p className="text-primary-600 font-bold text-xs">{formatCurrency(l.price)}</p>
+                                                        {/* Use React Link via navigate – Popup renders outside React tree so we use a plain anchor with full reload prevention */}
+                                                        <Link to={`/listings/${l._id}`} className="block mt-2 text-center text-[10px] bg-slate-900 text-white py-1 rounded hover:bg-primary-600 transition-colors">View Details</Link>
+                                                    </div>
+                                                </Popup>
+                                            </Marker>
+                                        )
+                                    ))}
+                                </MapContainer>
+
+                                {/* Map UI Overlays */}
+                                <div className="absolute top-4 left-4 z-[400] flex flex-col gap-4 pointer-events-none">
+                                    <div className="bg-white/90 backdrop-blur-md p-4 rounded-[1.5rem] shadow-xl max-w-xs border border-white/50 pointer-events-auto">
+                                        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 flex items-center gap-2">
+                                            <Sparkles className="h-3 w-3 text-primary-500" /> Live View
+                                        </h4>
+                                        <p className="text-slate-900 font-bold italic text-sm leading-snug">
+                                            {listings.length} properties found in this area.
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    )}
+                        )
+                    }
 
                     {/* Pagination */}
-                    {!loading && !fetchError && resultsStats.pages > 1 && (
-                        <div className="mt-20 flex justify-center">
-                            <nav className="flex bg-white dark:bg-slate-800 p-2 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700 gap-2" aria-label="Pagination">
-                                {[...Array(resultsStats.pages)].map((_, i) => (
-                                    <button
-                                        key={i}
-                                        onClick={() => {
-                                            const newParams = new URLSearchParams(searchParams);
-                                            newParams.set('page', String(i + 1));
-                                            setSearchParams(newParams);
-                                            setFilters(prev => ({ ...prev, page: i + 1 }));
-                                            window.scrollTo({ top: 0, behavior: 'smooth' });
-                                        }}
-                                        aria-label={`Page ${i + 1}`}
-                                        aria-current={Number(filters.page) === i + 1 ? 'page' : undefined}
-                                        className={`w-12 h-12 flex items-center justify-center rounded-xl text-xs font-black transition-all ${Number(filters.page) === i + 1 ? 'bg-primary-600 text-white shadow-xl shadow-primary-500/20' : 'text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white'}`}
-                                    >
-                                        {i + 1}
-                                    </button>
-                                ))}
-                            </nav>
-                        </div>
-                    )}
-                </main>
-            </div>
-        </div>
+                    {
+                        !loading && !fetchError && resultsStats.pages > 1 && (
+                            <div className="mt-20 flex justify-center">
+                                <nav className="flex bg-white dark:bg-slate-800 p-2 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700 gap-2" aria-label="Pagination">
+                                    {[...Array(resultsStats.pages)].map((_, i) => (
+                                        <button
+                                            key={i}
+                                            onClick={() => {
+                                                const newParams = new URLSearchParams(searchParams);
+                                                newParams.set('page', String(i + 1));
+                                                setSearchParams(newParams);
+                                                setFilters(prev => ({ ...prev, page: i + 1 }));
+                                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                                            }}
+                                            aria-label={`Page ${i + 1}`}
+                                            aria-current={Number(filters.page) === i + 1 ? 'page' : undefined}
+                                            className={`w-12 h-12 flex items-center justify-center rounded-xl text-xs font-black transition-all ${Number(filters.page) === i + 1 ? 'bg-primary-600 text-white shadow-xl shadow-primary-500/20' : 'text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white'}`}
+                                        >
+                                            {i + 1}
+                                        </button>
+                                    ))}
+                                </nav>
+                            </div>
+                        )
+                    }
+                </main >
+            </div >
+        </div >
     );
 };
 

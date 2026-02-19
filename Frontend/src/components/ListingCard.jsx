@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-hot-toast';
 import { formatCurrency } from '../utils/format';
+import { NO_IMAGE_PLACEHOLDER } from '../utils/constants';
 
 const ListingCard = ({ listing }) => {
     const {
@@ -11,7 +12,7 @@ const ListingCard = ({ listing }) => {
     } = listing;
     const { isFavorite, toggleFavorite, user } = useAuth();
 
-    const displayImage = images && images.length > 0 ? images[0] : 'https://via.placeholder.com/300';
+    const displayImage = images && images.length > 0 ? images[0] : NO_IMAGE_PLACEHOLDER;
     const isFav = isFavorite(_id);
 
     const handleShare = async (e) => {

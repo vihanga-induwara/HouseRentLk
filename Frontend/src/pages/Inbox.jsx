@@ -6,6 +6,7 @@ import { toast } from 'react-hot-toast';
 import {
     MessageSquare, Send, ChevronLeft, Clock, CheckCircle, XCircle, X
 } from 'lucide-react';
+import { NO_IMAGE_PLACEHOLDER } from '../utils/constants';
 
 const STATUS_STYLE = {
     new: { label: 'New', color: 'bg-blue-100 text-blue-700' },
@@ -98,7 +99,7 @@ const Inbox = () => {
     // Conversation View
     if (selectedInquiry) {
         const listing = selectedInquiry.listing;
-        const displayImage = listing?.images?.[0] || 'https://via.placeholder.com/80';
+        const displayImage = listing?.images?.[0] || NO_IMAGE_PLACEHOLDER;
         const statusStyle = STATUS_STYLE[selectedInquiry.status] || STATUS_STYLE.new;
 
         return (
@@ -135,8 +136,8 @@ const Inbox = () => {
                         {/* Original message */}
                         <div className={`flex ${selectedInquiry.sender._id === user._id ? 'justify-end' : 'justify-start'}`}>
                             <div className={`max-w-[75%] rounded-2xl px-4 py-3 ${selectedInquiry.sender._id === user._id
-                                    ? 'bg-primary-500 text-white rounded-br-md'
-                                    : 'bg-slate-100 text-slate-800 rounded-bl-md'
+                                ? 'bg-primary-500 text-white rounded-br-md'
+                                : 'bg-slate-100 text-slate-800 rounded-bl-md'
                                 }`}>
                                 <p className="text-sm">{selectedInquiry.message}</p>
                                 <p className={`text-[10px] mt-1.5 ${selectedInquiry.sender._id === user._id ? 'text-primary-200' : 'text-slate-400'
@@ -152,8 +153,8 @@ const Inbox = () => {
                             return (
                                 <div key={i} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
                                     <div className={`max-w-[75%] rounded-2xl px-4 py-3 ${isMe
-                                            ? 'bg-primary-500 text-white rounded-br-md'
-                                            : 'bg-slate-100 text-slate-800 rounded-bl-md'
+                                        ? 'bg-primary-500 text-white rounded-br-md'
+                                        : 'bg-slate-100 text-slate-800 rounded-bl-md'
                                         }`}>
                                         <p className="text-sm">{reply.message}</p>
                                         <p className={`text-[10px] mt-1.5 ${isMe ? 'text-primary-200' : 'text-slate-400'}`}>
@@ -217,7 +218,7 @@ const Inbox = () => {
                     {inquiries.map(inq => {
                         const person = tab === 'received' ? inq.sender : inq.owner;
                         const listing = inq.listing;
-                        const displayImage = listing?.images?.[0] || 'https://via.placeholder.com/60';
+                        const displayImage = listing?.images?.[0] || NO_IMAGE_PLACEHOLDER;
                         const statusStyle = STATUS_STYLE[inq.status] || STATUS_STYLE.new;
                         const lastMsg = inq.replies?.length > 0
                             ? inq.replies[inq.replies.length - 1].message

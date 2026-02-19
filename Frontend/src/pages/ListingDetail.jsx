@@ -6,12 +6,13 @@ import {
     Phone, ArrowLeft, MessageSquare,
     ShieldCheck, Star, Info, TrendingDown, TrendingUp,
     Zap, Eye, CheckCircle, Sparkles, X, ChevronLeft, ChevronRight,
-    Flag, Send, Calendar
+    Flag, Send, Calendar, Loader2, Tag, ThumbsUp, ThumbsDown, Minus
 } from 'lucide-react';
 import Button from '../components/Button';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-hot-toast';
 import { formatCurrency } from '../utils/format';
+import { NO_IMAGE_PLACEHOLDER } from '../utils/constants';
 
 // ─── Lightbox ──────────────────────────────────────────────────────────────
 const Lightbox = ({ images, startIndex, onClose }) => {
@@ -107,6 +108,11 @@ const ListingDetail = () => {
     const [marketInsight, setMarketInsight] = useState(null);
     const [similarListings, setSimilarListings] = useState([]);
 
+    // AI Features
+    const [priceFairness, setPriceFairness] = useState(null);
+    const [reviewSentiment, setReviewSentiment] = useState(null);
+    const [areaSafety, setAreaSafety] = useState(null);
+
     // Commute Calculator State
     const [commuteAddr, setCommuteAddr] = useState('');
     const [commuteResult, setCommuteResult] = useState(null);
@@ -190,6 +196,16 @@ const ListingDetail = () => {
             ]);
             if (insightRes.status === 'fulfilled') setMarketInsight(insightRes.value.data);
             if (similarRes.status === 'fulfilled') setSimilarListings(similarRes.value.data);
+
+            // Fetch AI price fairness, review sentiment & safety score
+            const [fairnessRes, sentimentRes, safetyRes] = await Promise.allSettled([
+                API.get(`/ai/price-fairness/${id}`),
+                API.get(`/ai/review-sentiment/${id}`),
+                API.get(`/ai/safety-score/${id}`),
+            ]);
+            if (fairnessRes.status === 'fulfilled') setPriceFairness(fairnessRes.value.data);
+            if (sentimentRes.status === 'fulfilled') setReviewSentiment(sentimentRes.value.data);
+            if (safetyRes.status === 'fulfilled') setAreaSafety(safetyRes.value.data);
 
             // Track recently viewed
             try {
@@ -322,12 +338,12 @@ const ListingDetail = () => {
         contactDetails, aiDescription: aiData,
         virtualTourUrl, isUrgent, views,
         availableVisits, tenantType, houseRules, minRentalPeriod,
-        agreementRequired, availableFrom, furnished
+        agreementRequired, availableFrom, furnished, autoTags, nearbyPlaces
     } = listing;
 
     const aiDescription = aiData || {};
     const displayAddress = location ? `${location.address}, ${location.town}` : 'Address Unavailable';
-    const displayImages = images && images.length > 0 ? images : ['https://via.placeholder.com/600x400'];
+    const displayImages = images && images.length > 0 ? images : [NO_IMAGE_PLACEHOLDER];
     const isFav = isFavorite(id);
     const investmentRating = getInvestmentRating(marketInsight);
 
@@ -500,6 +516,17 @@ const ListingDetail = () => {
                                 <Eye className="h-4 w-4" /> {views || 0} Views
                             </span>
                         </div>
+
+                        {/* AI Auto-Tags */}
+                        {autoTags && autoTags.length > 0 && (
+                            <div className="flex flex-wrap gap-2 mt-4">
+                                {autoTags.map((tag, i) => (
+                                    <span key={i} className="inline-flex items-center gap-1 px-3 py-1 bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-300 text-[10px] font-black uppercase tracking-widest rounded-lg border border-violet-100 dark:border-violet-800">
+                                        <Tag className="h-3 w-3" /> {tag.label || tag}
+                                    </span>
+                                ))}
+                            </div>
+                        )}
                         <div className="flex items-start text-slate-500 dark:text-slate-400 font-bold text-2xl mb-10">
                             <MapPin className="h-7 w-7 mr-3 text-primary-500 shrink-0 mt-0.5" />
                             {displayAddress}
@@ -667,6 +694,48 @@ const ListingDetail = () => {
                         </div>
                     </div>
 
+                    {/* Area Safety Score */}
+                    {areaSafety && (
+                        <div className="bg-white dark:bg-slate-800 rounded-[2.5rem] p-10 shadow-xl border border-slate-100 dark:border-slate-700">
+                            <div className="flex items-center justify-between mb-8">
+                                <h3 className="text-xl font-black dark:text-white italic tracking-tight flex items-center gap-3">
+                                    <Shield className="h-6 w-6 text-primary-500" /> Area Safety Score
+                                </h3>
+                                <div className={`text-3xl font-black italic ${areaSafety.color === 'green' ? 'text-emerald-500' : areaSafety.color === 'blue' ? 'text-blue-500' : areaSafety.color === 'yellow' ? 'text-amber-500' : 'text-orange-500'}`}>
+                                    {areaSafety.overallScore}/100
+                                </div>
+                            </div>
+                            <div className={`inline-block px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest mb-6 ${areaSafety.color === 'green' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300'
+                                    : areaSafety.color === 'blue' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                                        : areaSafety.color === 'yellow' ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
+                                            : 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300'
+                                }`}>
+                                {areaSafety.label}
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                {areaSafety.categories?.map((cat, i) => (
+                                    <div key={i} className="bg-slate-50 dark:bg-slate-900 p-4 rounded-2xl">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <span className="text-lg">{cat.icon}</span>
+                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{cat.name}</span>
+                                        </div>
+                                        <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
+                                            <div
+                                                className={`h-2 rounded-full ${cat.score >= 70 ? 'bg-emerald-500' : cat.score >= 50 ? 'bg-amber-500' : 'bg-red-400'
+                                                    }`}
+                                                style={{ width: `${cat.score}%` }}
+                                            ></div>
+                                        </div>
+                                        <span className="text-xs font-black text-slate-500 mt-1 block">{cat.score}/100</span>
+                                    </div>
+                                ))}
+                            </div>
+                            <p className="text-[10px] text-slate-400 mt-4 font-bold italic">
+                                Based on {areaSafety.basedOn?.reviewsAnalyzed || 0} reviews and area data for {areaSafety.basedOn?.town}.
+                            </p>
+                        </div>
+                    )}
+
                     {/* AI Insights */}
                     {aiDescription?.description && (
                         <div className="space-y-8">
@@ -795,6 +864,20 @@ const ListingDetail = () => {
                                             </div>
                                         </div>
                                         <p className="text-slate-600 dark:text-slate-300 leading-relaxed font-bold italic">&ldquo;{r.comment}&rdquo;</p>
+                                        {/* Sentiment indicator */}
+                                        {r.rating >= 4 ? (
+                                            <div className="mt-3 flex items-center gap-1.5 text-[10px] font-black text-green-600 dark:text-green-400 uppercase tracking-widest">
+                                                <ThumbsUp className="h-3 w-3" /> Positive
+                                            </div>
+                                        ) : r.rating <= 2 ? (
+                                            <div className="mt-3 flex items-center gap-1.5 text-[10px] font-black text-red-500 dark:text-red-400 uppercase tracking-widest">
+                                                <ThumbsDown className="h-3 w-3" /> Critical
+                                            </div>
+                                        ) : (
+                                            <div className="mt-3 flex items-center gap-1.5 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                                <Minus className="h-3 w-3" /> Mixed
+                                            </div>
+                                        )}
                                     </div>
                                 ))
                             )}
@@ -811,7 +894,7 @@ const ListingDetail = () => {
                                 {similarListings.map(l => (
                                     <Link key={l._id} to={`/listings/${l._id}`} className="bg-white dark:bg-slate-800 rounded-[2rem] p-4 border border-slate-100 dark:border-slate-700 hover:shadow-xl transition-all block group">
                                         <img
-                                            src={l.images?.[0] || 'https://via.placeholder.com/300x200'}
+                                            src={l.images?.[0] || NO_IMAGE_PLACEHOLDER}
                                             className="w-full h-48 object-cover rounded-[1.5rem] mb-4 group-hover:scale-[1.02] transition-transform"
                                             alt={l.title}
                                             loading="lazy"
@@ -838,6 +921,20 @@ const ListingDetail = () => {
                             </div>
                             {listing.negotiable && (
                                 <span className="text-xs font-black text-emerald-500 uppercase tracking-widest mt-1 block">Price Negotiable</span>
+                            )}
+
+                            {/* AI Price Fairness Badge */}
+                            {priceFairness && (
+                                <div className={`mt-4 flex items-center gap-2 px-4 py-2.5 rounded-2xl border text-xs font-black uppercase tracking-widest ${priceFairness.label === 'Great Deal'
+                                    ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300'
+                                    : priceFairness.label === 'Fair Price'
+                                        ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300'
+                                        : 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300'
+                                    }`}>
+                                    <Sparkles className="h-4 w-4" />
+                                    <span>{priceFairness.label}</span>
+                                    <span className="ml-auto text-[10px] opacity-70">{priceFairness.score}/100</span>
+                                </div>
                             )}
                         </div>
 

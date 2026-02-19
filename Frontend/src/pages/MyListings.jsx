@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import API from '../utils/api';
 import { toast } from 'react-hot-toast';
 import { formatCurrency } from '../utils/format';
+import { NO_IMAGE_PLACEHOLDER } from '../utils/constants';
 import {
     Eye, Edit3, Pause, Play, Home, Trash2, RefreshCw,
     Clock, CheckCircle, XCircle, AlertCircle, MapPin, Calendar,
@@ -193,7 +194,7 @@ const MyListings = () => {
                     const isExpiringSoon = daysLeft !== null && daysLeft > 0 && daysLeft <= 5;
                     const isExpired = daysLeft !== null && daysLeft <= 0;
                     const isActing = actionLoading === listing._id;
-                    const displayImage = listing.images?.[0] || 'https://via.placeholder.com/120';
+                    const displayImage = listing.images?.[0] || NO_IMAGE_PLACEHOLDER;
 
                     return (
                         <div key={listing._id} className="bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow p-4 sm:p-5">

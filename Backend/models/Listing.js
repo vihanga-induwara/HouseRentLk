@@ -127,6 +127,19 @@ const listingSchema = mongoose.Schema(
             townVibe: { type: String },
             generatedAt: { type: Date },
         },
+        aiTitle: {
+            title: { type: String },
+            alternatives: [String],
+            generatedAt: { type: Date },
+        },
+        autoTags: {
+            type: [String],
+            default: [],
+        },
+        nearbyPlaces: {
+            type: [String],
+            default: [],
+        },
         expiresAt: {
             type: Date,
         },

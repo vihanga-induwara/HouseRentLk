@@ -15,6 +15,10 @@ import Inbox from './pages/Inbox';
 import CompareListings from './pages/CompareListings';
 import OwnerLeadCRM from './pages/OwnerLeadCRM';
 import AdminUserEdit from './pages/AdminUserEdit';
+import AdminScrapingPanel from './pages/AdminScrapingPanel';
+import AdminScrapedListings from './pages/AdminScrapedListings';
+import AdminMarketReport from './pages/AdminMarketReport';
+import AdminScrapingSettings from './pages/AdminScrapingSettings';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { Toaster } from 'react-hot-toast';
@@ -46,6 +50,12 @@ function App() {
               <Route path="/inbox" element={<ProtectedRoute><Inbox /></ProtectedRoute>} />
               <Route path="/owner/leads" element={<ProtectedRoute><OwnerLeadCRM /></ProtectedRoute>} />
               <Route path="/admin/users/:id" element={<ProtectedRoute><AdminUserEdit /></ProtectedRoute>} />
+
+              {/* Scraping Routes */}
+              <Route path="/admin/scraping" element={<ProtectedRoute><AdminScrapingPanel /></ProtectedRoute>} />
+              <Route path="/admin/scraping/listings" element={<ProtectedRoute><AdminScrapedListings /></ProtectedRoute>} />
+              <Route path="/admin/scraping/market" element={<ProtectedRoute><AdminMarketReport /></ProtectedRoute>} />
+              <Route path="/admin/scraping/settings" element={<ProtectedRoute><AdminScrapingSettings /></ProtectedRoute>} />
             </Routes>
           </Layout>
         </Router>

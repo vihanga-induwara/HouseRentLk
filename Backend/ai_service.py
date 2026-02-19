@@ -166,6 +166,7 @@ if __name__ == "__main__":
 
     except json.JSONDecodeError as e:
         print(json.dumps({"error": f"Invalid JSON input: {str(e)}"}))
+        sys.exit(1)
     except Exception as e:
         print(json.dumps({"error": str(e)}))
-    sys.exit(1)
+        sys.exit(1)

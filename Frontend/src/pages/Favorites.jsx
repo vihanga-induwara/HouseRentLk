@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Heart, MapPin, Home, Bed, Bath, Maximize, Calendar, Trash2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { NO_IMAGE_PLACEHOLDER } from '../utils/constants';
 
 const Favorites = () => {
     const { user } = useAuth();
@@ -99,7 +100,7 @@ const Favorites = () => {
                                 onClick={() => navigate(`/listings/${listing._id}`)}
                             >
                                 <img
-                                    src={listing.images?.[0] || 'https://via.placeholder.com/400x300'}
+                                    src={listing.images?.[0] || NO_IMAGE_PLACEHOLDER}
                                     alt={listing.title}
                                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                                 />

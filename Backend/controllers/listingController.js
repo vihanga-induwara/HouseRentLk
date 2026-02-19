@@ -4,6 +4,7 @@ const csv = require('csv-parser');
 const Listing = require('../models/Listing');
 const Favorite = require('../models/Favorite');
 const Inquiry = require('../models/Inquiry');
+const Report = require('../models/Report');
 const { createNotification } = require('./notificationController');
 
 // @desc    Get all listings (Public - Approved Only)
@@ -108,6 +109,7 @@ const getMyListings = asyncHandler(async (req, res) => {
 
 const { spawn } = require('child_process');
 const path = require('path');
+const { runAiScript } = require('../utils/aiRunner');
 
 // Helper to generate AI content
 const generateAIContent = (listingData) => {
@@ -166,7 +168,23 @@ const createListing = asyncHandler(async (req, res) => {
         }
     } catch (error) {
         console.error("AI Generation failed", error);
-        // Continue creating listing without AI content
+    }
+
+    // Auto-tag listing using NLP
+    try {
+        const tagResult = await runAiScript('auto_tagger.py', {
+            title: listingData.title || '',
+            description: listingData.description || '',
+            amenities: listingData.amenities || {},
+            furnished: listingData.furnished || 'Unfurnished'
+        });
+
+        if (tagResult && tagResult.tags) {
+            listingData.autoTags = tagResult.tags;
+            listingData.nearbyPlaces = tagResult.nearbyPlaces || [];
+        }
+    } catch (error) {
+        console.error("Auto-tagging failed", error);
     }
 
     const listing = await Listing.create(listingData);
@@ -396,13 +414,17 @@ const getMarketInsights = asyncHandler(async (req, res) => {
 
     const insight = similarProperties[0] || { avgPrice: 0, minPrice: 0, maxPrice: 0, count: 0 };
 
+    const diff = insight.avgPrice ? Math.round(((listing.price - insight.avgPrice) / insight.avgPrice) * 100) : 0;
+
     res.status(200).json({
         yourPrice: listing.price,
         areaAverage: Math.round(insight.avgPrice),
         minPrice: insight.minPrice,
         maxPrice: insight.maxPrice,
         propertyCount: insight.count,
-        difference: insight.avgPrice ? Math.round(((listing.price - insight.avgPrice) / insight.avgPrice) * 100) : 0
+        difference: diff,
+        percentDiff: Math.abs(diff),
+        status: diff <= 0 ? 'good_deal' : 'above_average'
     });
 });
 
@@ -526,6 +548,52 @@ const getSimilarListings = asyncHandler(async (req, res) => {
     res.status(200).json(similar);
 });
 
+// @desc    Report a listing
+// @route   POST /api/listings/report
+// @access  Private
+const reportListing = asyncHandler(async (req, res) => {
+    const { listingId, reason } = req.body;
+
+    if (!listingId || !reason) {
+        res.status(400);
+        throw new Error('Listing ID and reason are required');
+    }
+
+    const listing = await Listing.findById(listingId);
+    if (!listing) {
+        res.status(404);
+        throw new Error('Listing not found');
+    }
+
+    // Check for duplicate report
+    const existing = await Report.findOne({ reporter: req.user.id, listing: listingId });
+    if (existing) {
+        res.status(400);
+        throw new Error('You have already reported this listing');
+    }
+
+    const report = await Report.create({
+        reporter: req.user.id,
+        listing: listingId,
+        reason
+    });
+
+    // Notify admins
+    try {
+        await createNotification({
+            userId: listing.owner,
+            type: 'listing_reported',
+            title: 'Listing Reported',
+            message: `Your listing "${listing.title}" has been reported and is under review.`,
+            link: '/my-listings',
+        });
+    } catch (err) {
+        console.error('Failed to send report notification:', err);
+    }
+
+    res.status(201).json({ message: 'Report submitted successfully', report });
+});
+
 module.exports = {
     getListings,
     getListing,
@@ -541,5 +609,6 @@ module.exports = {
     duplicateListing,
     getMarketInsights,
     bulkUploadListings,
-    getSimilarListings
+    getSimilarListings,
+    reportListing
 };

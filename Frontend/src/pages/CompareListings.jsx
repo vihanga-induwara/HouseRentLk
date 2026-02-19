@@ -2,15 +2,18 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import API from '../utils/api';
 import { formatCurrency } from '../utils/format';
+import { NO_IMAGE_PLACEHOLDER } from '../utils/constants';
 import {
     X, Check, AlertCircle, Bed, Bath, Layout,
-    ArrowLeft, Share2, Heart, ShieldCheck
+    ArrowLeft, Share2, Heart, ShieldCheck, Sparkles, Loader2, Trophy, Zap
 } from 'lucide-react';
 
 const CompareListings = () => {
     const [searchParams] = useSearchParams();
     const [listings, setListings] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [aiComparison, setAiComparison] = useState(null);
+    const [aiLoading, setAiLoading] = useState(false);
     const ids = searchParams.get('ids')?.split(',') || [];
 
     useEffect(() => {
@@ -24,6 +27,19 @@ const CompareListings = () => {
                     ids.map(id => API.get(`/listings/${id}`))
                 );
                 setListings(fetched.map(res => res.data));
+
+                // Fetch AI comparison
+                if (ids.length >= 2) {
+                    setAiLoading(true);
+                    try {
+                        const aiRes = await API.post('/ai/compare', { listingIds: ids });
+                        setAiComparison(aiRes.data);
+                    } catch (e) {
+                        console.error('AI comparison failed', e);
+                    } finally {
+                        setAiLoading(false);
+                    }
+                }
             } catch (error) {
                 console.error("Comparison fetch failed", error);
             } finally {
@@ -76,6 +92,56 @@ const CompareListings = () => {
                 <p className="text-slate-500 dark:text-slate-400">Comparing {listings.length} selected properties in Sri Lanka</p>
             </header>
 
+            {/* AI Comparison Summary */}
+            {aiLoading && (
+                <div className="bg-gradient-to-r from-violet-50 to-indigo-50 dark:from-violet-900/20 dark:to-indigo-900/20 p-6 rounded-3xl border border-violet-100 dark:border-violet-800 mb-8 flex items-center gap-4">
+                    <Loader2 className="h-6 w-6 text-violet-500 animate-spin" />
+                    <span className="text-sm font-bold text-violet-600">AI is analyzing properties...</span>
+                </div>
+            )}
+            {aiComparison && !aiLoading && (
+                <div className="bg-gradient-to-r from-violet-50 to-indigo-50 dark:from-violet-900/20 dark:to-indigo-900/20 p-8 rounded-3xl border border-violet-100 dark:border-violet-800 mb-8">
+                    <div className="flex items-center gap-3 mb-5">
+                        <div className="p-2 bg-violet-100 dark:bg-violet-800 rounded-xl">
+                            <Sparkles className="h-5 w-5 text-violet-600 dark:text-violet-300" />
+                        </div>
+                        <h3 className="text-lg font-black text-slate-900 dark:text-white">AI Analysis</h3>
+                    </div>
+
+                    {/* Winner Badge */}
+                    {aiComparison.winner && (
+                        <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl mb-5 border border-emerald-100 dark:border-emerald-800 flex items-center gap-4">
+                            <div className="p-3 bg-emerald-100 dark:bg-emerald-900/30 rounded-xl">
+                                <Trophy className="h-6 w-6 text-emerald-600" />
+                            </div>
+                            <div>
+                                <div className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-0.5">Best Overall Pick</div>
+                                <div className="text-lg font-black text-slate-900 dark:text-white">{aiComparison.winner.title}</div>
+                                <div className="text-xs text-slate-500 mt-0.5">{aiComparison.winner.reasons?.join(' · ')}</div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Insights */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {aiComparison.insights?.map((insight, i) => (
+                            <div key={i} className="bg-white dark:bg-slate-800 p-4 rounded-xl flex items-start gap-3">
+                                <span className="text-xl">{insight.icon}</span>
+                                <div>
+                                    <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{insight.category}</div>
+                                    <p className="text-sm text-slate-700 dark:text-slate-300 font-bold mt-1">{insight.text}</p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Summary */}
+                    <p className="mt-5 text-sm font-bold text-slate-600 dark:text-slate-300 italic border-t border-violet-100 dark:border-violet-700 pt-4">
+                        {aiComparison.summary}
+                    </p>
+                </div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-[200px_repeat(auto-fit,minmax(250px,1fr))] gap-px bg-slate-200 dark:bg-slate-700 rounded-[2rem] overflow-hidden border border-slate-200 dark:border-slate-700 shadow-2xl">
                 {/* Attribute Column (Labels) */}
                 <div className="hidden md:block">
@@ -95,7 +161,7 @@ const CompareListings = () => {
                     <div key={idx} className="bg-white dark:bg-slate-800 flex flex-col group">
                         {/* Header Image & Title */}
                         <div className="h-64 relative overflow-hidden">
-                            <img src={item.images[0] || 'https://via.placeholder.com/300'} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" alt="" />
+                            <img src={item.images[0] || NO_IMAGE_PLACEHOLDER} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" alt="" />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
                             <div className="absolute bottom-4 left-4 right-4 text-white">
                                 <h3 className="font-bold text-lg line-clamp-1">{item.title}</h3>

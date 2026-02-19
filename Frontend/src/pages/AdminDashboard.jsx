@@ -4,10 +4,11 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import {
     Users, Home as HomeIcon, Eye, Check, X, ShieldAlert, TrendingUp,
-    FileText, UserCheck, UserX, Search, Filter, ShieldCheck, Edit2, Trash2
+    FileText, UserCheck, UserX, Search, Filter, ShieldCheck, Edit2, Trash2, Globe
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { formatCurrency } from '../utils/format';
+import { NO_IMAGE_PLACEHOLDER } from '../utils/constants';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Layout, Palette } from 'lucide-react';
 
@@ -212,6 +213,13 @@ const AdminDashboard = () => {
                     >
                         <Palette className="h-4 w-4 inline mr-2" />
                         Branding
+                    </button>
+                    <button
+                        onClick={() => navigate('/admin/scraping')}
+                        className="pb-4 px-1 border-b-2 border-transparent font-medium text-sm text-slate-500 hover:text-slate-700 hover:border-slate-300 transition-colors"
+                    >
+                        <Globe className="h-4 w-4 inline mr-2" />
+                        Web Scraping
                     </button>
                 </nav>
             </div>
@@ -438,7 +446,7 @@ const AdminDashboard = () => {
                                     <td className="px-6 py-4">
                                         <div className="flex items-center">
                                             <img
-                                                src={listing.images[0] || 'https://via.placeholder.com/150'}
+                                                src={listing.images[0] || NO_IMAGE_PLACEHOLDER}
                                                 alt={listing.title}
                                                 className="h-12 w-12 rounded-lg object-cover mr-4"
                                             />

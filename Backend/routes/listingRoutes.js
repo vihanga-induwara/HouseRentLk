@@ -15,12 +15,15 @@ const {
     duplicateListing,
     getMarketInsights,
     bulkUploadListings,
+    getSimilarListings,
+    reportListing,
 } = require('../controllers/listingController');
 const { protect, authorize } = require('../middleware/authMiddleware');
 
-// My Listings (must be before /:id to avoid conflict)
+// Static routes (must be before /:id to avoid conflict)
 router.get('/my-listings', protect, getMyListings);
 router.post('/bulk-upload', protect, upload.single('file'), bulkUploadListings);
+router.post('/report', protect, reportListing);
 
 router.route('/')
     .get(getListings)
@@ -37,5 +40,6 @@ router.put('/:id/renew', protect, renewListing);
 router.get('/:id/analytics', protect, getListingAnalytics);
 router.get('/:id/market-insights', getMarketInsights);
 router.post('/:id/duplicate', protect, duplicateListing);
+router.get('/:id/similar', getSimilarListings);
 
 module.exports = router;

@@ -46,7 +46,7 @@ const EditListing = () => {
     const [formData, setFormData] = useState({
         title: '', description: '', type: 'House',
         town: '', street: '', houseNumber: '', address: '',
-        coordinates: [80.7718, 7.8731],
+        coordinates: [7.8731, 80.7718],
         price: '', negotiable: false, advancePayment: 0, minRentalPeriod: 1,
         beds: 1, baths: 1, size: '', furnished: 'Unfurnished',
         amenities: {
@@ -81,7 +81,7 @@ const EditListing = () => {
                     street: loc.street || '',
                     houseNumber: loc.houseNumber || '',
                     address: loc.address || '',
-                    coordinates: coords ? [coords[0], coords[1]] : [80.7718, 7.8731],
+                    coordinates: coords ? [coords[1], coords[0]] : [7.8731, 80.7718],
                     price: data.price || '',
                     negotiable: data.negotiable || false,
                     advancePayment: data.advancePayment || 0,

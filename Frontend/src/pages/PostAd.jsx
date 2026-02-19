@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import API from '../utils/api';
 import { toast } from 'react-hot-toast';
@@ -6,7 +6,8 @@ import Button from '../components/Button';
 import Input from '../components/Input';
 import {
     Home, MapPin, DollarSign, List, Image as ImageIcon, CheckCircle,
-    ChevronRight, ChevronLeft, Upload, X, Trash2
+    ChevronRight, ChevronLeft, Upload, X, Trash2, Sparkles, Loader2, TrendingUp,
+    AlertTriangle, ShieldCheck
 } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -92,7 +93,7 @@ const StepMap = ({ coordinates, setCoordinates }) => {
     );
 };
 
-const StepDetails = ({ formData, handleChange }) => (
+const StepDetails = ({ formData, handleChange, priceSuggestion, onFetchPriceSuggestion, onApplyPrice }) => (
     <div className="space-y-4">
         <h2 className="text-2xl font-bold mb-6 text-slate-900">Rental Details</h2>
         <div className="grid grid-cols-2 gap-4">
@@ -104,6 +105,62 @@ const StepDetails = ({ formData, handleChange }) => (
             <Input label="Baths" name="baths" type="number" value={formData.baths} onChange={handleChange} />
             <Input label="Size (Sqft)" name="size" type="number" value={formData.size} onChange={handleChange} />
         </div>
+
+        {/* AI Price Suggestion */}
+        {formData.town && formData.beds && (
+            <div className="mt-4">
+                {!priceSuggestion ? (
+                    <button
+                        type="button"
+                        onClick={onFetchPriceSuggestion}
+                        className="flex items-center gap-2 text-sm font-semibold text-amber-600 hover:text-amber-700 bg-amber-50 hover:bg-amber-100 px-4 py-2.5 rounded-xl border border-amber-200 transition-all"
+                    >
+                        <Sparkles className="h-4 w-4" /> Get AI Price Suggestion
+                    </button>
+                ) : priceSuggestion.loading ? (
+                    <div className="flex items-center gap-2 text-sm text-slate-500 bg-slate-50 px-4 py-3 rounded-xl border border-slate-200">
+                        <Loader2 className="h-4 w-4 animate-spin" /> Analyzing market data...
+                    </div>
+                ) : priceSuggestion.error ? (
+                    <div className="text-sm text-red-500 bg-red-50 px-4 py-3 rounded-xl border border-red-200">
+                        {priceSuggestion.error}
+                    </div>
+                ) : (
+                    <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-4 rounded-xl border border-amber-200 space-y-3">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <Sparkles className="h-5 w-5 text-amber-500" />
+                                <span className="font-bold text-amber-800">AI Price Suggestion</span>
+                            </div>
+                            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${priceSuggestion.confidence === 'high' ? 'bg-green-100 text-green-700'
+                                : priceSuggestion.confidence === 'medium' ? 'bg-yellow-100 text-yellow-700'
+                                    : 'bg-slate-100 text-slate-600'
+                                }`}>
+                                {priceSuggestion.confidence} confidence
+                            </span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="bg-white/70 rounded-lg p-3 text-center">
+                                <div className="text-[10px] text-slate-500 uppercase font-bold">Suggested</div>
+                                <div className="text-lg font-black text-amber-700">LKR {Number(priceSuggestion.suggested_price || 0).toLocaleString()}</div>
+                            </div>
+                            <div className="bg-white/70 rounded-lg p-3 text-center">
+                                <div className="text-[10px] text-slate-500 uppercase font-bold">Market Avg</div>
+                                <div className="text-lg font-black text-slate-700">LKR {Number(priceSuggestion.market_average || 0).toLocaleString()}</div>
+                            </div>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => onApplyPrice(priceSuggestion.suggested_price)}
+                            className="w-full text-center text-sm font-bold text-amber-700 hover:text-amber-800 bg-white/80 hover:bg-white py-2 rounded-lg border border-amber-300 transition-all"
+                        >
+                            Apply Suggested Price
+                        </button>
+                    </div>
+                )}
+            </div>
+        )}
+
         <label className="flex items-center space-x-2 mt-2">
             <input type="checkbox" name="negotiable" checked={formData.negotiable} onChange={handleChange} className="rounded text-primary-600 focus:ring-primary-500" />
             <span className="text-slate-700 font-medium">Price is Negotiable</span>
@@ -178,6 +235,30 @@ const StepMedia = ({ files, previewUrls, handleFileChange, removeImage, moveImag
                     </div>
                 ))}
             </div>
+
+            {/* AI Image Quality Indicator */}
+            {previewUrls.length > 0 && (
+                <div className={`mt-4 p-4 rounded-2xl border flex items-start gap-3 ${previewUrls.length >= 5 ? 'bg-emerald-50 border-emerald-100 dark:bg-emerald-900/20 dark:border-emerald-800' :
+                        previewUrls.length >= 3 ? 'bg-blue-50 border-blue-100 dark:bg-blue-900/20 dark:border-blue-800' :
+                            'bg-amber-50 border-amber-100 dark:bg-amber-900/20 dark:border-amber-800'
+                    }`}>
+                    <Sparkles className={`h-5 w-5 shrink-0 mt-0.5 ${previewUrls.length >= 5 ? 'text-emerald-500' : previewUrls.length >= 3 ? 'text-blue-500' : 'text-amber-500'
+                        }`} />
+                    <div>
+                        <div className="text-[10px] font-black uppercase tracking-widest mb-0.5" style={{ color: previewUrls.length >= 5 ? '#059669' : previewUrls.length >= 3 ? '#2563eb' : '#d97706' }}>
+                            Image Quality: {previewUrls.length >= 5 ? 'Excellent' : previewUrls.length >= 3 ? 'Good' : 'Needs More'}
+                        </div>
+                        <p className="text-xs text-slate-600 dark:text-slate-300 font-bold">
+                            {previewUrls.length >= 5
+                                ? `Great! ${previewUrls.length} photos uploaded. Listings with 5+ photos get 3× more inquiries.`
+                                : previewUrls.length >= 3
+                                    ? `Good start with ${previewUrls.length} photos. Adding 2 more will boost visibility significantly.`
+                                    : `Only ${previewUrls.length} photo${previewUrls.length > 1 ? 's' : ''}. We recommend at least 5 photos for best results.`
+                            }
+                        </p>
+                    </div>
+                </div>
+            )}
         </div>
 
         <div className="pt-6 border-t border-slate-100">
@@ -310,9 +391,66 @@ const StepContact = ({ contactDetails, formData, setFormData, handleChange }) =>
     );
 };
 
-const StepPreview = ({ formData, previews }) => (
+const StepPreview = ({ formData, previews, handleChange, aiTitle, onGenerateTitle, onApplyTitle }) => (
     <div className="space-y-6">
         <h2 className="text-2xl font-bold text-slate-900">Review your Listing</h2>
+
+        {/* Title & Description with AI */}
+        <div className="space-y-4">
+            <div>
+                <div className="flex items-center justify-between mb-1">
+                    <label className="text-sm font-semibold text-slate-700">Listing Title</label>
+                    <button
+                        type="button"
+                        onClick={onGenerateTitle}
+                        disabled={aiTitle?.loading}
+                        className="flex items-center gap-1.5 text-xs font-bold text-violet-600 hover:text-violet-700 bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-lg border border-violet-200 transition-all disabled:opacity-50"
+                    >
+                        {aiTitle?.loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+                        Generate Smart Title
+                    </button>
+                </div>
+                <input
+                    type="text"
+                    name="title"
+                    value={formData.title}
+                    onChange={handleChange}
+                    placeholder={`${formData.type} for Rent in ${formData.town || '...'}`}
+                    className="w-full rounded-xl border-slate-200 text-sm focus:ring-primary-500 h-11 border px-3"
+                />
+                {aiTitle?.data && !aiTitle.loading && (
+                    <div className="mt-2 bg-violet-50 p-3 rounded-lg border border-violet-200 space-y-2">
+                        <p className="text-[10px] text-violet-500 uppercase font-bold">AI Suggestions (click to use)</p>
+                        {[aiTitle.data.title, ...(aiTitle.data.alternatives || [])].map((t, i) => (
+                            <button
+                                key={i}
+                                type="button"
+                                onClick={() => onApplyTitle(t)}
+                                className={`block w-full text-left text-sm px-3 py-2 rounded-lg border transition-all ${formData.title === t
+                                    ? 'border-violet-400 bg-violet-100 text-violet-800 font-semibold'
+                                    : 'border-violet-200 bg-white hover:bg-violet-50 text-slate-700'
+                                    }`}
+                            >
+                                {i === 0 && <span className="text-[9px] font-black text-violet-500 mr-1">⭐ TOP</span>}
+                                {t}
+                            </button>
+                        ))}
+                    </div>
+                )}
+            </div>
+            <div>
+                <label className="text-sm font-semibold text-slate-700 mb-1 block">Description (Optional)</label>
+                <textarea
+                    name="description"
+                    value={formData.description}
+                    onChange={handleChange}
+                    rows={3}
+                    placeholder="Describe your property in detail..."
+                    className="w-full rounded-xl border-slate-200 text-sm focus:ring-primary-500 border px-3 py-2"
+                />
+                <p className="text-[10px] text-slate-400 mt-1">AI will auto-generate a description if left empty.</p>
+            </div>
+        </div>
 
         <div className="bg-slate-50 p-6 rounded-xl border border-slate-200">
             <div className="flex gap-4 overflow-x-auto pb-4 mb-4">
@@ -379,6 +517,11 @@ const PostAd = () => {
     const [files, setFiles] = useState([]);
     const [previewUrls, setPreviewUrls] = useState([]);
 
+    // AI State
+    const [priceSuggestion, setPriceSuggestion] = useState(null);
+    const [aiTitle, setAiTitle] = useState(null);
+    const [spamWarning, setSpamWarning] = useState(null);
+
     const [formData, setFormData] = useState({
         type: 'House',
         town: '',
@@ -426,6 +569,51 @@ const PostAd = () => {
         tenantType: 'Any',
         houseRules: '',
     });
+
+    // AI Price Suggestion Handler
+    const fetchPriceSuggestion = useCallback(async () => {
+        if (!formData.town || !formData.beds) return;
+        setPriceSuggestion({ loading: true });
+        try {
+            const { data } = await API.get('/ai/price-suggest', {
+                params: { town: formData.town, beds: formData.beds, baths: formData.baths, size: formData.size || 1000 }
+            });
+            setPriceSuggestion(data);
+        } catch (err) {
+            setPriceSuggestion({ error: 'Could not fetch price data for this area.' });
+        }
+    }, [formData.town, formData.beds, formData.baths, formData.size]);
+
+    const applyPrice = useCallback((price) => {
+        setFormData(prev => ({ ...prev, price: String(price) }));
+        toast.success('Suggested price applied!');
+    }, []);
+
+    // AI Title Generator Handler
+    const generateSmartTitle = useCallback(async () => {
+        setAiTitle({ loading: true });
+        try {
+            const { data } = await API.post('/ai/generate-title', {
+                type: formData.type,
+                beds: formData.beds,
+                baths: formData.baths,
+                town: formData.town,
+                price: formData.price,
+                tenantType: formData.tenantType,
+                amenities: formData.amenities,
+                furnished: formData.furnished
+            });
+            setAiTitle({ data });
+        } catch (err) {
+            setAiTitle(null);
+            toast.error('Title generation failed');
+        }
+    }, [formData]);
+
+    const applyTitle = useCallback((title) => {
+        setFormData(prev => ({ ...prev, title }));
+        toast.success('Title applied!');
+    }, []);
 
     const handleNext = () => setCurrentStep((prev) => prev + 1);
     const handleBack = () => setCurrentStep((prev) => prev - 1);
@@ -496,6 +684,26 @@ const PostAd = () => {
             }
 
             let imageUrls = [];
+
+            // Run spam check in background (non-blocking warning)
+            try {
+                const spamRes = await API.post('/ai/spam-check', {
+                    title: formData.title || '',
+                    description: formData.description || '',
+                    price: Number(formData.price),
+                    town: formData.town
+                });
+                if (spamRes.data.verdict === 'spam') {
+                    toast.error('Your listing was flagged as suspicious. Please review the content.', { duration: 5000 });
+                    setSpamWarning(spamRes.data);
+                    setLoading(false);
+                    return;
+                } else if (spamRes.data.verdict === 'suspicious') {
+                    toast('Your listing has minor quality warnings. It will be reviewed by our team.', { icon: '⚠️', duration: 4000 });
+                }
+            } catch {
+                // Spam check failed — continue anyway
+            }
             if (files.length > 0) {
                 const uploadData = new FormData();
                 files.forEach(file => uploadData.append('images', file));
@@ -590,7 +798,13 @@ const PostAd = () => {
                         />
                     )}
                     {currentStep === STEPS.DETAILS && (
-                        <StepDetails formData={formData} handleChange={handleChange} />
+                        <StepDetails
+                            formData={formData}
+                            handleChange={handleChange}
+                            priceSuggestion={priceSuggestion}
+                            onFetchPriceSuggestion={fetchPriceSuggestion}
+                            onApplyPrice={applyPrice}
+                        />
                     )}
                     {currentStep === STEPS.AMENITIES && (
                         <StepAmenities amenities={formData.amenities} toggle={handleAmenityChange} />
@@ -615,7 +829,14 @@ const PostAd = () => {
                         />
                     )}
                     {currentStep === STEPS.PREVIEW && (
-                        <StepPreview formData={formData} previews={previewUrls} />
+                        <StepPreview
+                            formData={formData}
+                            previews={previewUrls}
+                            handleChange={handleChange}
+                            aiTitle={aiTitle}
+                            onGenerateTitle={generateSmartTitle}
+                            onApplyTitle={applyTitle}
+                        />
                     )}
                 </div>
 
