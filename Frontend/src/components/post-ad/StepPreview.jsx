@@ -65,7 +65,7 @@ const StepPreview = ({ formData, previews, handleChange, aiTitle, onGenerateTitl
             <div className="flex gap-4 overflow-x-auto pb-4 mb-4">
                 {previews.map((url, i) => (
                     <div key={i} className="relative flex-shrink-0">
-                        <img src={url} className="h-24 w-24 object-cover rounded-lg" />
+                        <img src={url} className="h-24 w-24 object-cover rounded-lg" alt={`Preview ${i + 1}`} />
                         {i === 0 && <span className="absolute bottom-0 inset-x-0 bg-primary-600 text-white text-[8px] text-center font-bold py-0.5 rounded-b-lg">COVER</span>}
                     </div>
                 ))}

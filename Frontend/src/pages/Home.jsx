@@ -111,7 +111,7 @@ const Home = () => {
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                         {recentlyViewed.map((v) => (
                             <Link key={v.id} to={`/listings/${v.id}`} className="group relative rounded-[2rem] overflow-hidden aspect-[4/5] shadow-xl hover:translate-y-[-4px] transition-all duration-500">
-                                <img src={v.image || NO_IMAGE_PLACEHOLDER} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                                <img src={v.image || NO_IMAGE_PLACEHOLDER} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt={`${v.title} thumbnail`} />
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent"></div>
                                 <div className="absolute bottom-6 left-6 right-6">
                                     <h4 className="text-white font-black text-sm italic mb-1 line-clamp-1 group-hover:text-primary-400 transition-colors uppercase tracking-tight">{v.title}</h4>

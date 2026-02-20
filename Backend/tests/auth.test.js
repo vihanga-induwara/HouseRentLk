@@ -32,7 +32,7 @@ describe('Auth Controller', () => {
         });
 
         it('should return 400 for invalid email', async () => {
-            req.body = { name: 'Test', email: 'invalid-email', password: 'password123' };
+            req.body = { name: 'Test', email: 'invalid-email', password: 'StrongPassword123!' };
 
             await registerUser(req, res, next);
 
@@ -42,17 +42,17 @@ describe('Auth Controller', () => {
         });
 
         it('should return 400 for weak password', async () => {
-            req.body = { name: 'Test', email: 'test@example.com', password: '123' };
+            req.body = { name: 'Test', email: 'test@example.com', password: 'weak' };
 
             await registerUser(req, res, next);
 
             expect(res.status).toHaveBeenCalledWith(400);
             expect(next).toHaveBeenCalledWith(expect.any(Error));
-            expect(next.mock.calls[0][0].message).toBe('Password must be at least 6 characters');
+            expect(next.mock.calls[0][0].message).toBe('Password must be at least 8 characters and include uppercase, lowercase, and numbers.');
         });
 
         it('should return 400 if user already exists', async () => {
-            req.body = { name: 'Test', email: 'test@example.com', password: 'password123' };
+            req.body = { name: 'Test', email: 'test@example.com', password: 'StrongPassword123!' };
             User.findOne.mockResolvedValue({ email: 'test@example.com' });
 
             await registerUser(req, res, next);
@@ -63,7 +63,7 @@ describe('Auth Controller', () => {
         });
 
         it('should register user successfully', async () => {
-            req.body = { name: 'Test', email: 'new@example.com', password: 'password123' };
+            req.body = { name: 'Test', email: 'new@example.com', password: 'StrongPassword123!' };
             User.findOne.mockResolvedValue(null);
             bcrypt.genSalt.mockResolvedValue('salt');
             bcrypt.hash.mockResolvedValue('hashedPassword');
@@ -74,7 +74,8 @@ describe('Auth Controller', () => {
                 password: 'hashedPassword',
                 role: 'renter'
             });
-            jwt.sign.mockReturnValue('test_token');
+            process.env.JWT_SECRET = 'test_secret';
+            jwt.sign = jest.fn().mockReturnValue('test_token');
 
             await registerUser(req, res, next);
 

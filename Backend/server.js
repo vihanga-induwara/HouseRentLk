@@ -3,6 +3,10 @@ const dotenv = require('dotenv');
 const cors = require('cors');
 const connectDB = require('./config/db');
 const cloudinary = require('cloudinary').v2;
+const helmet = require('helmet');
+const mongoSanitize = require('express-mongo-sanitize');
+const xss = require('xss-clean');
+const morgan = require('morgan');
 
 // Load env vars
 dotenv.config();
@@ -18,6 +22,16 @@ cloudinary.config({
 connectDB();
 
 const app = express();
+
+// Security Middlewares
+app.use(helmet()); // Secure HTTP headers
+app.use(mongoSanitize()); // Prevent NoSQL operator injection
+app.use(xss()); // Prevent Cross-Site Scripting (XSS) attacks
+
+// Logging middleware
+if (process.env.NODE_ENV !== 'test') {
+    app.use(morgan('combined'));
+}
 
 // Middleware
 app.use(express.json());

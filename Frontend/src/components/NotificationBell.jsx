@@ -97,6 +97,7 @@ const NotificationBell = () => {
         <div className="relative" ref={dropdownRef}>
             <button
                 onClick={handleOpen}
+                aria-label="Notifications"
                 className="relative p-2 rounded-full hover:bg-slate-100 transition-colors"
             >
                 <Bell className="h-5 w-5 text-slate-600" />

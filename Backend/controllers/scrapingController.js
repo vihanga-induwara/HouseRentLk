@@ -20,6 +20,27 @@ const runScraperScript = async (scriptName, inputData) => {
 };
 
 // ═══════════════════════════════════════════
+//   HELPER: SSRF Vulnerability Preventer
+// ═══════════════════════════════════════════
+
+const validateExternalUrl = (urlString) => {
+    try {
+        const parsedUrl = new URL(urlString);
+        const prohibitedHostnames = [
+            'localhost', '127.0.0.1', '169.254.169.254',
+            '10.0.0.0', '172.16.0.0', '192.168.0.0'
+        ];
+        // Checking for common internal network prefixes (e.g. AWS Instance Metadata, Localhost proxies)
+        if (prohibitedHostnames.some(host => parsedUrl.hostname.includes(host)) || parsedUrl.hostname.endsWith('.local') || parsedUrl.hostname.endsWith('.internal')) {
+            return false;
+        }
+        return ['http:', 'https:'].includes(parsedUrl.protocol);
+    } catch (e) {
+        return false;
+    }
+};
+
+// ═══════════════════════════════════════════
 //   1. SOURCE MANAGEMENT
 // ═══════════════════════════════════════════
 
@@ -38,6 +59,11 @@ const addSource = asyncHandler(async (req, res) => {
     if (!name || !slug || !url || !scraperScript) {
         res.status(400);
         throw new Error('Name, slug, URL, and scraper script are required');
+    }
+
+    if (!validateExternalUrl(url)) {
+        res.status(400);
+        throw new Error(`The provided URL is invalid or blocked for security reasons (SSRF).`);
     }
 
     const existing = await ScrapingSource.findOne({ slug });
@@ -66,6 +92,12 @@ const updateSource = asyncHandler(async (req, res) => {
     }
 
     const { name, url, scraperScript, schedule, config, isEnabled } = req.body;
+
+    if (url !== undefined && !validateExternalUrl(url)) {
+        res.status(400);
+        throw new Error(`The provided URL is invalid or blocked for security reasons (SSRF).`);
+    }
+
     if (name !== undefined) source.name = name;
     if (url !== undefined) source.url = url;
     if (scraperScript !== undefined) source.scraperScript = scraperScript;
@@ -409,9 +441,11 @@ const getScrapedListings = asyncHandler(async (req, res) => {
     if (minQuality) query['aiAnalysis.qualityScore'] = { $gte: parseInt(minQuality) };
     if (maxScamRisk) query['aiAnalysis.scamRiskScore'] = { $lte: parseInt(maxScamRisk) };
     if (search) {
+        const escapeRegex = (text) => text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+        const safeSearch = escapeRegex(search);
         query.$or = [
-            { title: { $regex: new RegExp(search, 'i') } },
-            { description: { $regex: new RegExp(search, 'i') } },
+            { title: { $regex: new RegExp(safeSearch, 'i') } },
+            { description: { $regex: new RegExp(safeSearch, 'i') } },
         ];
     }
 

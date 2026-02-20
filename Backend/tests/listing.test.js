@@ -24,7 +24,7 @@ describe('Listing Controller', () => {
         req = {
             query: {},
             body: {},
-            user: { id: 'user_id', role: 'owner' }
+            user: { id: 'user_id', role: 'owner', isEmailVerified: true, isPhoneVerified: true }
         };
         res = {
             status: jest.fn().mockReturnThis(),

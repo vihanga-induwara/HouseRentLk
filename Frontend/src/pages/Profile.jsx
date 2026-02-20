@@ -35,10 +35,7 @@ const Profile = () => {
     const [nicPreviews, setNicPreviews] = useState([]);
     const [verifying, setVerifying] = useState(false);
 
-    // Contact Verification State
-    const [otp, setOtp] = useState('');
-    const [showOtpConfirm, setShowOtpConfirm] = useState(false);
-    const [verificationTarget, setVerificationTarget] = useState(null); // 'email' or 'phone'
+
 
     useEffect(() => {
         if (user) {
@@ -134,37 +131,6 @@ const Profile = () => {
         }
     };
 
-    const handleSendOtp = async (type) => {
-        setLoading(true);
-        try {
-            await API.post('/auth/send-otp', { type });
-            setVerificationTarget(type);
-            setShowOtpConfirm(true);
-            toast.success(`OTP sent to your ${type}`);
-        } catch (error) {
-            toast.error(error.response?.data?.message || 'Failed to send OTP');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleVerifyOtp = async () => {
-        if (!otp) return toast.error('Please enter OTP');
-        setLoading(true);
-        try {
-            await API.post('/auth/verify-otp', { type: verificationTarget, otp });
-            toast.success(`${verificationTarget} verified successfully!`);
-            setShowOtpConfirm(false);
-            setOtp('');
-
-            // Refresh user data (simple reload for now or update context if possible)
-            setTimeout(() => window.location.reload(), 1000);
-        } catch (error) {
-            toast.error(error.response?.data?.message || 'Invalid OTP');
-        } finally {
-            setLoading(false);
-        }
-    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -241,11 +207,7 @@ const Profile = () => {
                                         <div className="font-bold text-sm truncate max-w-[120px]">{user?.email}</div>
                                     </div>
                                 </div>
-                                {user?.isEmailVerified ? (
-                                    <CheckCircle className="h-5 w-5 text-green-500" />
-                                ) : (
-                                    <button onClick={() => handleSendOtp('email')} className="text-xs font-bold text-primary-600 hover:underline">Verify</button>
-                                )}
+
                             </div>
                             <div className="flex items-center justify-between text-slate-600 bg-slate-50/50 p-4 rounded-2xl border border-slate-100">
                                 <div className="flex items-center">
@@ -255,11 +217,7 @@ const Profile = () => {
                                         <div className="font-bold text-sm">{user?.phone || 'Not provided'}</div>
                                     </div>
                                 </div>
-                                {user?.isPhoneVerified ? (
-                                    <CheckCircle className="h-5 w-5 text-green-500" />
-                                ) : (
-                                    user?.phone && <button onClick={() => handleSendOtp('phone')} className="text-xs font-bold text-primary-600 hover:underline">Verify</button>
-                                )}
+
                             </div>
                         </div>
                     </div>
@@ -294,7 +252,7 @@ const Profile = () => {
                                             {nicPreviews.length > 0 ? (
                                                 <div className="grid grid-cols-2 w-full h-full gap-1 p-1">
                                                     {nicPreviews.slice(0, 2).map((p, i) => (
-                                                        <img key={i} src={p} className="w-full h-full object-cover rounded-lg" />
+                                                        <img key={i} src={p} className="w-full h-full object-cover rounded-lg" alt={`NIC preview ${i + 1}`} />
                                                     ))}
                                                 </div>
                                             ) : (
@@ -343,23 +301,6 @@ const Profile = () => {
 
                 {/* Main Content Area */}
                 <div className="lg:col-span-8 space-y-6 md:space-y-8">
-                    {/* OTP Entry UI (Conditional) */}
-                    {showOtpConfirm && (
-                        <div className="bg-white p-6 md:p-8 rounded-[2rem] border-2 border-primary-500 shadow-xl animate-in fade-in slide-in-from-top-4">
-                            <h3 className="text-xl font-bold mb-4">Verify {verificationTarget === 'email' ? 'Email Address' : 'Phone Number'}</h3>
-                            <p className="text-sm text-slate-500 mb-4">Enter the code sent to your {verificationTarget}.</p>
-                            <div className="flex gap-4">
-                                <Input
-                                    value={otp}
-                                    onChange={(e) => setOtp(e.target.value)}
-                                    placeholder="Enter OTP"
-                                    className="text-center tracking-widest text-lg font-bold"
-                                />
-                                <Button onClick={handleVerifyOtp} isLoading={loading}>Verify</Button>
-                                <Button variant="outline" onClick={() => setShowOtpConfirm(false)}>Cancel</Button>
-                            </div>
-                        </div>
-                    )}
 
                     {/* Basic Info */}
                     <div className="bg-white p-6 md:p-10 rounded-[2rem] md:rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100">

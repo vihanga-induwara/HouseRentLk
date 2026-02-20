@@ -22,20 +22,21 @@ const StepMedia = ({ files, previewUrls, handleFileChange, removeImage, moveImag
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
                 {previewUrls.map((url, i) => (
                     <div key={i} className="relative aspect-square rounded-xl overflow-hidden group border border-slate-200">
-                        <img src={url} alt="preview" className="w-full h-full object-cover" />
+                        <img src={url} alt={`Property upload preview ${i + 1}`} className="w-full h-full object-cover" />
                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                             {i > 0 && (
-                                <button onClick={() => moveImage(i, -1)} className="p-1 bg-white rounded-full hover:bg-slate-100 shadow-sm" title="Move Left">
+                                <button onClick={() => moveImage(i, -1)} aria-label="Move Image Left" className="p-1 bg-white rounded-full hover:bg-slate-100 shadow-sm" title="Move Left">
                                     <ChevronLeft className="h-4 w-4 text-slate-700" />
                                 </button>
                             )}
                             {i < previewUrls.length - 1 && (
-                                <button onClick={() => moveImage(i, 1)} className="p-1 bg-white rounded-full hover:bg-slate-100 shadow-sm" title="Move Right">
+                                <button onClick={() => moveImage(i, 1)} aria-label="Move Image Right" className="p-1 bg-white rounded-full hover:bg-slate-100 shadow-sm" title="Move Right">
                                     <ChevronRight className="h-4 w-4 text-slate-700" />
                                 </button>
                             )}
                             <button
                                 onClick={() => removeImage(i)}
+                                aria-label="Remove Image"
                                 className="p-1 bg-red-500 rounded-full hover:bg-red-600 shadow-sm text-white"
                                 title="Remove Image"
                             >

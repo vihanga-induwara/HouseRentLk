@@ -23,10 +23,11 @@ const registerUser = asyncHandler(async (req, res) => {
         throw new Error('Invalid email format');
     }
 
-    // Password strength validation (min 6 chars)
-    if (password.length < 6) {
+    // Password strength validation (min 8 chars, numbers, letters)
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d\w\W]{8,}$/;
+    if (!passwordRegex.test(password)) {
         res.status(400);
-        throw new Error('Password must be at least 6 characters');
+        throw new Error('Password must be at least 8 characters and include uppercase, lowercase, and numbers.');
     }
 
     // Check if user exists
@@ -37,15 +38,11 @@ const registerUser = asyncHandler(async (req, res) => {
         throw new Error('User already exists');
     }
 
-    // Hash password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
     // Create user
     const user = await User.create({
         name,
         email,
-        password: hashedPassword,
+        password, // Let User model pre('save') hook hash this
         role: role || 'renter',
         phone,
         preferences: preferences || {},
@@ -60,6 +57,7 @@ const registerUser = asyncHandler(async (req, res) => {
             role: user.role,
             phone: user.phone,
             preferences: user.preferences,
+
             token: generateToken(user._id),
         });
     } else {
@@ -101,6 +99,7 @@ const loginUser = asyncHandler(async (req, res) => {
             role: user.role,
             avatar: user.avatar,
             preferences: user.preferences,
+
             token: generateToken(user._id),
         });
     } else {
@@ -160,95 +159,17 @@ const updateProfile = asyncHandler(async (req, res) => {
 
 // Generate JWT
 const generateToken = (id) => {
+    if (!process.env.JWT_SECRET) {
+        throw new Error('FATAL: JWT_SECRET environment variable is missing.');
+    }
     return jwt.sign({ id }, process.env.JWT_SECRET, {
         expiresIn: '30d',
     });
 };
 
-// @desc    Send OTP for verification
-// @route   POST /api/auth/send-otp
-// @access  Private
-const sendOtp = asyncHandler(async (req, res) => {
-    const { type } = req.body; // 'email' or 'phone'
-    const user = await User.findById(req.user._id);
-
-    if (!user) {
-        res.status(404);
-        throw new Error('User not found');
-    }
-
-    if (type === 'email') {
-        const success = await require('../utils/emailService').sendEmailOtp(user.email);
-        if (success) {
-            res.status(200).json({ message: 'Email OTP sent' });
-        } else {
-            res.status(500);
-            throw new Error('Failed to send OTP via external service');
-        }
-    } else if (type === 'phone') {
-        // SMS still uses local generation for now, or we could migrate it too?
-        // User only asked for Email to use the new service. Keeping SMS as is for now.
-        const otp = Math.floor(100000 + Math.random() * 900000).toString();
-        const expires = Date.now() + 10 * 60 * 1000; // 10 minutes
-        user.phoneOtp = otp;
-        user.phoneOtpExpires = expires;
-        await user.save();
-        await require('../utils/smsService').sendSmsOtp(user.phone, otp);
-        res.status(200).json({ message: 'Phone OTP sent' });
-    } else {
-        res.status(400);
-        throw new Error('Invalid verification type');
-    }
-});
-
-// @desc    Verify OTP
-// @route   POST /api/auth/verify-otp
-// @access  Private
-const verifyOtp = asyncHandler(async (req, res) => {
-    const { type, otp } = req.body;
-    const user = await User.findById(req.user._id);
-
-    if (!user) {
-        res.status(404);
-        throw new Error('User not found');
-    }
-
-    if (type === 'email') {
-        // External verification
-        const isValid = await require('../utils/emailService').verifyEmailOtp(user.email, otp);
-        if (isValid) {
-            user.isEmailVerified = true;
-            // Clean up legacy fields if they exist
-            user.emailOtp = undefined;
-            user.emailOtpExpires = undefined;
-            await user.save();
-            res.status(200).json({ message: 'Email verified successfully', isEmailVerified: true });
-        } else {
-            res.status(400);
-            throw new Error('Invalid or expired OTP');
-        }
-    } else if (type === 'phone') {
-        if (user.phoneOtp === otp && user.phoneOtpExpires > Date.now()) {
-            user.isPhoneVerified = true;
-            user.phoneOtp = undefined;
-            user.phoneOtpExpires = undefined;
-            await user.save();
-            res.status(200).json({ message: 'Phone verified successfully', isPhoneVerified: true });
-        } else {
-            res.status(400);
-            throw new Error('Invalid or expired OTP');
-        }
-    } else {
-        res.status(400);
-        throw new Error('Invalid verification type');
-    }
-});
-
 module.exports = {
     registerUser,
     loginUser,
     getMe,
-    updateProfile,
-    sendOtp,
-    verifyOtp
+    updateProfile
 };

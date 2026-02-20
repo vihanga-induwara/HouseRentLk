@@ -549,9 +549,9 @@ const AdminDashboard = () => {
                                         </div>
                                         <div className="space-y-3">
                                             <div className="text-xs text-slate-500 uppercase font-bold tracking-wider">NIC Front</div>
-                                            <img src={v.verification?.nicFront} className="rounded-lg border border-slate-200 cursor-pointer hover:opacity-90 w-full" onClick={() => window.open(v.verification.nicFront, '_blank')} />
+                                            <img src={v.verification?.nicFront} className="rounded-lg border border-slate-200 cursor-pointer hover:opacity-90 w-full" alt="NIC Front" onClick={() => window.open(v.verification.nicFront, '_blank')} />
                                             <div className="text-xs text-slate-500 uppercase font-bold tracking-wider">NIC Back</div>
-                                            <img src={v.verification?.nicBack} className="rounded-lg border border-slate-200 cursor-pointer hover:opacity-90 w-full" onClick={() => window.open(v.verification.nicBack, '_blank')} />
+                                            <img src={v.verification?.nicBack} className="rounded-lg border border-slate-200 cursor-pointer hover:opacity-90 w-full" alt="NIC Back" onClick={() => window.open(v.verification.nicBack, '_blank')} />
                                         </div>
                                         <div className="mt-4 pt-4 border-t border-slate-200">
                                             <div className="flex items-center justify-between">

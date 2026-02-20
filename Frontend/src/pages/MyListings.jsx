@@ -249,7 +249,7 @@ const MyListings = () => {
                         </div>
                         <div className="p-6">
                             <div className="flex items-center gap-4 mb-8">
-                                <img src={analyticsListing.images?.[0]} className="h-20 w-20 rounded-2xl object-cover shadow-md" />
+                                <img src={analyticsListing.images?.[0]} className="h-20 w-20 rounded-2xl object-cover shadow-md" alt={`${analyticsListing.title} thumbnail`} />
                                 <div className="min-w-0">
                                     <h4 className="font-bold text-slate-900 text-lg truncate">{analyticsListing.title}</h4>
                                     <p className="text-sm text-slate-500">{analyticsListing.location?.town}</p>
