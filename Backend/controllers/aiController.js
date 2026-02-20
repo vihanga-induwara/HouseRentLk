@@ -4,20 +4,24 @@ const Favorite = require('../models/Favorite');
 const Inquiry = require('../models/Inquiry');
 const Review = require('../models/Review');
 const SavedSearch = require('../models/SavedSearch');
-const { runAiScript } = require('../utils/aiRunner');
+const aiService = require('../services/aiService');
 
 // @desc    Get AI-suggested price for a listing
 // @route   GET /api/ai/price-suggest
 // @access  Public
 const getSuggestedPrice = asyncHandler(async (req, res) => {
-    const { town, beds, baths, size } = req.query;
+    let { town, beds, baths, size } = req.query;
 
     if (!town || !beds) {
         res.status(400);
         throw new Error('Town and beds are required');
     }
 
-    const result = await runAiScript('pricing_engine.py', {
+    // Basic sanitization
+    const sanitize = (str) => String(str).replace(/[;&|`$]/g, '').trim().substring(0, 100);
+    town = sanitize(town);
+
+    const result = await aiService.executeScript('pricing_engine.py', {
         town,
         beds: Number(beds),
         baths: Number(baths || 1),
@@ -38,7 +42,7 @@ const generateTitle = asyncHandler(async (req, res) => {
         throw new Error('Town, beds, and type are required');
     }
 
-    const result = await runAiScript('title_generator.py', {
+    const result = await aiService.executeScript('title_generator.py', {
         type,
         beds: Number(beds),
         baths: Number(baths || 1),
@@ -88,7 +92,7 @@ const getListingInsights = asyncHandler(async (req, res) => {
         avgPrice: peers.length > 0 ? peers.reduce((sum, p) => sum + (p.price || 0), 0) / peers.length : 40000
     };
 
-    const result = await runAiScript('performance_analyzer.py', {
+    const result = await aiService.executeScript('performance_analyzer.py', {
         listing: {
             views: listing.views || 0,
             shares: listing.shares || 0,
@@ -113,7 +117,7 @@ const getListingInsights = asyncHandler(async (req, res) => {
 const autoTagListing = asyncHandler(async (req, res) => {
     const { title, description, amenities, furnished } = req.body;
 
-    const result = await runAiScript('auto_tagger.py', {
+    const result = await aiService.executeScript('auto_tagger.py', {
         title: title || '',
         description: description || '',
         amenities: amenities || {},
@@ -141,7 +145,7 @@ const getReviewSentiment = asyncHandler(async (req, res) => {
         });
     }
 
-    const result = await runAiScript('sentiment_analyzer.py', {
+    const result = await aiService.executeScript('sentiment_analyzer.py', {
         reviews: reviews.map(r => ({
             _id: r._id.toString(),
             comment: r.comment,
@@ -221,7 +225,7 @@ const nlpSearch = asyncHandler(async (req, res) => {
         throw new Error('Search query is required (min 3 characters)');
     }
 
-    const result = await runAiScript('nlp_search.py', { query: query.trim() });
+    const result = await aiService.executeScript('nlp_search.py', { query: query.trim() });
     res.status(200).json(result);
 });
 
@@ -231,7 +235,7 @@ const nlpSearch = asyncHandler(async (req, res) => {
 const analyzeImageQuality = asyncHandler(async (req, res) => {
     const { images } = req.body;
     // images: array of { width, height, sizeKb }
-    const result = await runAiScript('image_quality.py', { images: images || [] });
+    const result = await aiService.executeScript('image_quality.py', { images: images || [] });
     res.status(200).json(result);
 });
 
@@ -258,7 +262,7 @@ const checkDuplicates = asyncHandler(async (req, res) => {
         type: l.type || ''
     }));
 
-    const result = await runAiScript('duplicate_detector.py', {
+    const result = await aiService.executeScript('duplicate_detector.py', {
         newListing: { title, description, town, price, beds, baths, type },
         existingListings: existingMapped
     });
@@ -271,7 +275,7 @@ const checkDuplicates = asyncHandler(async (req, res) => {
 // @access  Private
 const checkSpam = asyncHandler(async (req, res) => {
     const { title, description, price, town } = req.body;
-    const result = await runAiScript('spam_detector.py', {
+    const result = await aiService.executeScript('spam_detector.py', {
         title: title || '',
         description: description || '',
         price: Number(price) || 0,
@@ -307,7 +311,7 @@ const compareListings = asyncHandler(async (req, res) => {
         town: l.location?.town || ''
     }));
 
-    const result = await runAiScript('comparison_ai.py', { listings: mapped });
+    const result = await aiService.executeScript('comparison_ai.py', { listings: mapped });
     res.status(200).json(result);
 });
 
@@ -373,7 +377,7 @@ const getDemandHeatmap = asyncHandler(async (req, res) => {
         searchCount: searchMap[t._id] || 0
     }));
 
-    const result = await runAiScript('demand_analyzer.py', { towns });
+    const result = await aiService.executeScript('demand_analyzer.py', { towns });
     res.status(200).json(result);
 });
 
@@ -390,7 +394,7 @@ const getAreaSafety = asyncHandler(async (req, res) => {
     const reviews = await Review.find({ listing: listing._id })
         .select('comment rating').lean();
 
-    const result = await runAiScript('safety_scorer.py', {
+    const result = await aiService.executeScript('safety_scorer.py', {
         town: listing.location?.town || '',
         reviewData: {
             reviews: reviews.map(r => ({

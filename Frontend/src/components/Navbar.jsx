@@ -49,12 +49,12 @@ const Navbar = () => {
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex justify-between items-center">
                     {/* Logo Area */}
-                    <div className="flex items-center gap-8">
+                    <div className="flex items-center gap-4 md:gap-8">
                         <Link to="/" className="flex items-center gap-2 group">
                             <div className="bg-primary-500 rounded-lg p-1.5 text-white transition-transform group-hover:scale-110 shadow-lg shadow-primary-500/30">
-                                <Home className="h-5 w-5" />
+                                <Home className="h-4 w-4 md:h-5 md:w-5" />
                             </div>
-                            <span className={`text-xl font-bold tracking-tight ${scrolled ? 'text-slate-900 dark:text-slate-100' : 'text-slate-900 dark:text-slate-100'}`}>
+                            <span className={`text-lg md:text-xl font-bold tracking-tight ${scrolled ? 'text-slate-900 dark:text-slate-100' : 'text-slate-900 dark:text-slate-100'}`}>
                                 HouseRent<span className="text-primary-500">Lk</span>
                             </span>
                         </Link>
@@ -66,8 +66,8 @@ const Navbar = () => {
                                     key={link.name}
                                     to={link.path}
                                     className={`text-sm font-medium transition-colors hover:text-primary-600 dark:hover:text-primary-400 ${location.pathname === link.path
-                                            ? 'text-primary-600 dark:text-primary-400'
-                                            : 'text-slate-600 dark:text-slate-300'
+                                        ? 'text-primary-600 dark:text-primary-400'
+                                        : 'text-slate-600 dark:text-slate-300'
                                         }`}
                                 >
                                     {link.name}
@@ -194,8 +194,8 @@ const Navbar = () => {
                                 to={link.path}
                                 onClick={() => setIsOpen(false)}
                                 className={`block px-3 py-2 rounded-lg text-base font-medium transition-colors ${location.pathname === link.path
-                                        ? 'bg-primary-50 dark:bg-primary-900/10 text-primary-600 dark:text-primary-400'
-                                        : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+                                    ? 'bg-primary-50 dark:bg-primary-900/10 text-primary-600 dark:text-primary-400'
+                                    : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
                                     }`}
                             >
                                 {link.name}

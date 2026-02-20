@@ -1,9 +1,11 @@
 import sys
 import json
+import re
+from typing import Dict, Any, List
 
 # Sri Lankan town safety baseline data (curated estimates)
 # Scale: 0-100 where 100 is safest
-TOWN_SAFETY_BASELINES = {
+TOWN_SAFETY_BASELINES: Dict[str, int] = {
     "colombo": 60, "colombo 7": 80, "colombo 3": 75, "colombo 5": 75,
     "rajagiriya": 78, "nugegoda": 72, "maharagama": 68,
     "dehiwala": 65, "mount lavinia": 70, "moratuwa": 62,
@@ -23,7 +25,11 @@ TOWN_SAFETY_BASELINES = {
     "hokandara": 76, "horana": 70,
 }
 
-def calculate_safety_score(town, review_data):
+# Configurable constants
+DEFAULT_BASELINE = 65
+SENTIMENT_ADJUSTMENT_FACTOR = 20
+
+def calculate_safety_score(town: str, review_data: Dict[str, Any]) -> Dict[str, Any]:
     """
     Calculate neighborhood safety score from:
     1. Baseline town data
@@ -33,17 +39,18 @@ def calculate_safety_score(town, review_data):
     town_lower = town.lower().strip() if town else ''
 
     # Get baseline
-    baseline = TOWN_SAFETY_BASELINES.get(town_lower, 65)  # default 65
+    baseline = TOWN_SAFETY_BASELINES.get(town_lower, DEFAULT_BASELINE)
 
     # Analyze reviews for safety-related keywords
+    # Use word boundaries (\b) to avoid substring matches like "safe" in "unsafe"
     safety_positive = [
-        'safe', 'secure', 'quiet', 'peaceful', 'calm', 'family',
-        'guard', 'cctv', 'gated', 'well-lit', 'friendly', 'clean'
+        r'\bsafe\b', r'\bsecure\b', r'\bquiet\b', r'\bpeaceful\b', r'\bcalm\b', r'\bfamily\b',
+        r'\bguard\b', r'\bcctv\b', r'\bgated\b', r'\bwell-lit\b', r'\bfriendly\b', r'\bclean\b'
     ]
     safety_negative = [
-        'unsafe', 'dangerous', 'sketchy', 'noisy', 'loud', 'theft',
-        'robbery', 'crime', 'harassment', 'stray dogs', 'flooding',
-        'dirty', 'pollution', 'dark streets', 'scary'
+        r'\bunsafe\b', r'\bdangerous\b', r'\bsketchy\b', r'\bnoisy\b', r'\bloud\b', r'\btheft\b',
+        r'\brobbery\b', r'\bcrime\b', r'\bharassment\b', r'\bstray dogs\b', r'\bflooding\b',
+        r'\bdirty\b', r'\bpollution\b', r'\bdark streets\b', r'\bscary\b'
     ]
 
     positive_count = 0
@@ -52,18 +59,24 @@ def calculate_safety_score(town, review_data):
 
     for review in review_comments:
         comment = review.get('comment', '').lower()
-        for word in safety_positive:
-            if word in comment:
+        
+        # Check positive keywords
+        for pattern in safety_positive:
+            if re.search(pattern, comment):
                 positive_count += 1
-        for word in safety_negative:
-            if word in comment:
+                
+        # Check negative keywords
+        for pattern in safety_negative:
+            if re.search(pattern, comment):
                 negative_count += 1
 
     # Adjust baseline with review sentiment
     review_adjustment = 0
     if positive_count + negative_count > 0:
         sentiment_ratio = positive_count / (positive_count + negative_count)
-        review_adjustment = (sentiment_ratio - 0.5) * 20  # -10 to +10
+        # Ratio 1.0 -> (0.5 * 20) = +10
+        # Ratio 0.0 -> (-0.5 * 20) = -10
+        review_adjustment = (sentiment_ratio - 0.5) * SENTIMENT_ADJUSTMENT_FACTOR
 
     final_score = max(0, min(100, baseline + review_adjustment))
 
@@ -130,8 +143,13 @@ def calculate_safety_score(town, review_data):
     }
 
 if __name__ == '__main__':
-    input_data = json.loads(sys.stdin.read())
-    town = input_data.get('town', '')
-    review_data = input_data.get('reviewData', {})
-    result = calculate_safety_score(town, review_data)
-    print(json.dumps(result))
+    try:
+        input_data = json.loads(sys.stdin.read())
+        town_input = input_data.get('town', '')
+        review_data_input = input_data.get('reviewData', {})
+        result_output = calculate_safety_score(town_input, review_data_input)
+        print(json.dumps(result_output))
+    except json.JSONDecodeError:
+        print(json.dumps({"error": "Invalid JSON input", "trustScore": 0}))
+    except Exception as e:
+        print(json.dumps({"error": str(e), "trustScore": 0}))

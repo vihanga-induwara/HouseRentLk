@@ -14,6 +14,13 @@ const createBooking = asyncHandler(async (req, res) => {
         throw new Error('Listing not found');
     }
 
+    // Check for double booking
+    const existingBooking = await Booking.findOne({ listing: listingId, date, timeSlot, status: { $ne: 'cancelled' } });
+    if (existingBooking) {
+        res.status(400);
+        throw new Error('This time slot is already booked');
+    }
+
     const booking = await Booking.create({
         listing: listingId,
         renter: req.user._id,

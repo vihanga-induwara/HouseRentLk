@@ -57,9 +57,24 @@ const userSchema = mongoose.Schema(
             budgetMin: Number,
             budgetMax: Number,
             preferredType: [String],
+            preferredType: [String],
             bedsMin: Number,
             bio: String,
         },
+        // Verification System
+        isEmailVerified: {
+            type: Boolean,
+            default: false
+        },
+        isPhoneVerified: {
+            type: Boolean,
+            default: false
+        },
+        emailOtp: String,
+        emailOtpExpires: Date,
+        phoneOtp: String,
+        phoneOtpExpires: Date,
+
         bio: {
             type: String,
             maxlength: 250,

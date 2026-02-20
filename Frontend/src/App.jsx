@@ -19,6 +19,7 @@ import AdminScrapingPanel from './pages/AdminScrapingPanel';
 import AdminScrapedListings from './pages/AdminScrapedListings';
 import AdminMarketReport from './pages/AdminMarketReport';
 import AdminScrapingSettings from './pages/AdminScrapingSettings';
+import NotFound from './pages/NotFound';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { Toaster } from 'react-hot-toast';
@@ -56,6 +57,9 @@ function App() {
               <Route path="/admin/scraping/listings" element={<ProtectedRoute><AdminScrapedListings /></ProtectedRoute>} />
               <Route path="/admin/scraping/market" element={<ProtectedRoute><AdminMarketReport /></ProtectedRoute>} />
               <Route path="/admin/scraping/settings" element={<ProtectedRoute><AdminScrapingSettings /></ProtectedRoute>} />
+
+              {/* 404 Route */}
+              <Route path="*" element={<NotFound />} />
             </Routes>
           </Layout>
         </Router>

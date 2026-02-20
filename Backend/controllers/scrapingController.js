@@ -3,39 +3,20 @@ const ScrapingSource = require('../models/ScrapingSource');
 const ScrapedListing = require('../models/ScrapedListing');
 const ScrapeJob = require('../models/ScrapeJob');
 const Listing = require('../models/Listing');
-const { runAiScript } = require('../utils/aiRunner');
-const { spawn } = require('child_process');
+const aiService = require('../services/aiService');
 const path = require('path');
 
 // ═══════════════════════════════════════════
 //   HELPER: Run scraper script
 // ═══════════════════════════════════════════
 
-const runScraperScript = (scriptName, inputData) => {
-    return new Promise((resolve, reject) => {
-        const scriptPath = path.join(__dirname, '..', 'utils', 'scrapers', scriptName);
-        const pythonProcess = spawn('python', [scriptPath]);
-
-        let output = '';
-        let error = '';
-
-        pythonProcess.stdin.write(JSON.stringify(inputData));
-        pythonProcess.stdin.end();
-
-        pythonProcess.stdout.on('data', (data) => { output += data.toString(); });
-        pythonProcess.stderr.on('data', (data) => { error += data.toString(); });
-
-        pythonProcess.on('close', (code) => {
-            if (code !== 0) {
-                return reject(new Error(`Scraper ${scriptName} failed (code ${code}): ${error}`));
-            }
-            try {
-                resolve(JSON.parse(output));
-            } catch (e) {
-                reject(new Error(`Failed to parse scraper output: ${output.substring(0, 500)}`));
-            }
-        });
-    });
+const runScraperScript = async (scriptName, inputData) => {
+    // Scrapers are located in ../utils/scrapers relative to this controller?
+    // This controller is in Backend/controllers/
+    // Scrapers are in Backend/utils/scrapers/
+    // So distinct path is ../utils/scrapers
+    const scrapersPath = path.join(__dirname, '../utils/scrapers');
+    return await aiService.executeScript(scriptName, inputData, scrapersPath);
 };
 
 // ═══════════════════════════════════════════
@@ -239,7 +220,7 @@ const triggerScrape = asyncHandler(async (req, res) => {
                     // Run AI analysis
                     let aiAnalysis = {};
                     try {
-                        aiAnalysis = await runAiScript('scraped_analyzer.py', {
+                        aiAnalysis = await aiService.executeScript('scraped_analyzer.py', {
                             listing,
                             localStats,
                         });
@@ -547,7 +528,7 @@ const reAnalyzeListing = asyncHandler(async (req, res) => {
     if (!listing) { res.status(404); throw new Error('Listing not found'); }
 
     const localStats = await getLocalStats(listing.location?.town);
-    const aiResult = await runAiScript('scraped_analyzer.py', {
+    const aiResult = await aiService.executeScript('scraped_analyzer.py', {
         listing: listing.toObject(),
         localStats,
     });
@@ -691,7 +672,7 @@ const getMarketReport = asyncHandler(async (req, res) => {
     const totalScraped = await ScrapedListing.countDocuments();
     const totalLocal = await Listing.countDocuments({ status: 'approved' });
 
-    const report = await runAiScript('market_intelligence.py', {
+    const report = await aiService.executeScript('market_intelligence.py', {
         scrapedByArea, localByArea, scrapedBySource, totalScraped, totalLocal,
     });
 

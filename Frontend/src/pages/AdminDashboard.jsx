@@ -142,8 +142,8 @@ const AdminDashboard = () => {
             </div>
 
             {/* Tabs */}
-            <div className="border-b border-slate-200 mb-8">
-                <nav className="flex space-x-8">
+            <div className="border-b border-slate-200 mb-8 overflow-x-auto">
+                <nav className="flex space-x-8 min-w-max">
                     <button
                         onClick={() => setActiveTab('dashboard')}
                         className={`pb-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'dashboard'
@@ -336,8 +336,8 @@ const AdminDashboard = () => {
                     </div>
 
                     {/* Users Table */}
-                    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                        <table className="w-full">
+                    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden overflow-x-auto">
+                        <table className="w-full min-w-[800px]">
                             <thead className="bg-slate-50 border-b border-slate-200">
                                 <tr>
                                     <th className="px-6 py-4 text-left text-sm font-semibold text-slate-900">User</th>
@@ -429,8 +429,8 @@ const AdminDashboard = () => {
 
             {/* Listings Tab */}
             {activeTab === 'listings' && (
-                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                    <table className="w-full">
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden overflow-x-auto">
+                    <table className="w-full min-w-[800px]">
                         <thead className="bg-slate-50 border-b border-slate-200">
                             <tr>
                                 <th className="px-6 py-4 text-left text-sm font-semibold text-slate-900">Property</th>

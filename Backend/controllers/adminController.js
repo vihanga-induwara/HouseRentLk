@@ -1,6 +1,11 @@
 const asyncHandler = require('express-async-handler');
 const User = require('../models/User');
 const Listing = require('../models/Listing');
+const Booking = require('../models/Booking');
+const Review = require('../models/Review');
+const Inquiry = require('../models/Inquiry');
+const Favorite = require('../models/Favorite');
+const Report = require('../models/Report');
 
 // @desc    Get all users
 // @route   GET /api/admin/users
@@ -15,9 +20,12 @@ const getUsers = asyncHandler(async (req, res) => {
     }
 
     if (search) {
+        // Escape regex special characters to prevent ReDoS
+        const safeSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
         query.$or = [
-            { name: { $regex: search, $options: 'i' } },
-            { email: { $regex: search, $options: 'i' } }
+            { name: { $regex: safeSearch, $options: 'i' } },
+            { email: { $regex: safeSearch, $options: 'i' } }
         ];
     }
 
@@ -109,11 +117,34 @@ const deleteUser = asyncHandler(async (req, res) => {
         throw new Error('User not found');
     }
 
-    // Optional: Delete user's listings
-    await Listing.deleteMany({ owner: req.params.id });
+    // 1. Get all listings owned by user
+    const userListings = await Listing.find({ owner: req.params.id });
+    const listingIds = userListings.map(l => l._id);
+
+    // 2. Delete all data related to those listings (Cascading delete for listings)
+    if (listingIds.length > 0) {
+        await Promise.all([
+            Booking.deleteMany({ listing: { $in: listingIds } }),
+            Review.deleteMany({ listing: { $in: listingIds } }),
+            Inquiry.deleteMany({ listing: { $in: listingIds } }),
+            Favorite.deleteMany({ listingId: { $in: listingIds } }),
+            Report.deleteMany({ listing: { $in: listingIds } }),
+            Listing.deleteMany({ owner: req.params.id })
+        ]);
+    }
+
+    // 3. Delete user's own activity (Bookings made, Reviews given, etc.)
+    await Promise.all([
+        Booking.deleteMany({ renter: req.params.id }),
+        Review.deleteMany({ reviewer: req.params.id }),
+        Inquiry.deleteMany({ sender: req.params.id }),
+        Favorite.deleteMany({ userId: req.params.id }), // Assuming userId in Favorite
+        Report.deleteMany({ reporter: req.params.id })
+    ]);
+
     await user.deleteOne();
 
-    res.status(200).json({ message: 'User and their listings deleted successfully' });
+    res.status(200).json({ message: 'User and all associated data deleted successfully' });
 });
 
 // @desc    Get dashboard statistics

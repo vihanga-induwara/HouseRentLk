@@ -172,5 +172,7 @@ listingSchema.set('toJSON', { virtuals: true });
 listingSchema.set('toObject', { virtuals: true });
 
 listingSchema.index({ 'location.coordinates': '2dsphere' });
+listingSchema.index({ status: 1, type: 1, price: 1 }); // Optimize common search filters
+
 
 module.exports = mongoose.model('Listing', listingSchema);

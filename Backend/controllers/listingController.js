@@ -5,7 +5,10 @@ const Listing = require('../models/Listing');
 const Favorite = require('../models/Favorite');
 const Inquiry = require('../models/Inquiry');
 const Report = require('../models/Report');
+const Booking = require('../models/Booking');
+const Review = require('../models/Review');
 const { createNotification } = require('./notificationController');
+const aiService = require('../services/aiService');
 
 // @desc    Get all listings (Public - Approved Only)
 // @route   GET /api/listings
@@ -18,11 +21,6 @@ const getListings = asyncHandler(async (req, res) => {
         beds,
         type,
         furnished,
-        solarPower,
-        ac,
-        parking,
-        wifi,
-        garden,
         sort,
         page = 1,
         limit = 12
@@ -37,8 +35,11 @@ const getListings = asyncHandler(async (req, res) => {
         ]
     };
 
+    // Escape regex to prevent injection
+    const escapeRegex = (text) => text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+
     // Advanced Filtering
-    if (town) query['location.town'] = { $regex: town, $options: 'i' };
+    if (town) query['location.town'] = { $regex: escapeRegex(town), $options: 'i' };
     if (minPrice || maxPrice) {
         query.price = {};
         if (minPrice) query.price.$gte = Number(minPrice);
@@ -107,72 +108,44 @@ const getMyListings = asyncHandler(async (req, res) => {
     res.status(200).json(listings);
 });
 
-const { spawn } = require('child_process');
-const path = require('path');
-const { runAiScript } = require('../utils/aiRunner');
-
 // Helper to generate AI content
-const generateAIContent = (listingData) => {
-    return new Promise((resolve, reject) => {
-        const scriptPath = path.join(__dirname, '../ai_service.py');
-        const pythonProcess = spawn('python', [scriptPath]);
-
-        let dataString = '';
-
-        pythonProcess.stdin.write(JSON.stringify(listingData));
-        pythonProcess.stdin.end();
-
-        pythonProcess.stdout.on('data', (data) => {
-            dataString += data.toString();
-        });
-
-        pythonProcess.stderr.on('data', (data) => {
-            console.error(`AI Service Error: ${data}`);
-        });
-
-        pythonProcess.on('close', (code) => {
-            if (code !== 0) {
-                console.error(`AI Service exited with code ${code}`);
-                resolve(null); // Return null on error so we don't block creation
-                return;
-            }
-            try {
-                const result = JSON.parse(dataString);
-                resolve(result);
-            } catch (error) {
-                console.error('Failed to parse AI output', error);
-                resolve(null);
-            }
-        });
-    });
+const generateAIContent = async (listingData) => {
+    try {
+        return await aiService.executeScript('ai_service.py', listingData);
+    } catch (error) {
+        console.error("AI Generation failed:", error.message);
+        return null; // Graceful fallback
+    }
 };
 
 // @desc    Create new listing
 // @route   POST /api/listings
 // @access  Private (Owner/Broker)
 const createListing = asyncHandler(async (req, res) => {
+    // Verification Check
+    if (!req.user.isEmailVerified && !req.user.isPhoneVerified) {
+        res.status(403);
+        throw new Error('You must verify your Email or Phone Number before posting an ad.');
+    }
+
     const listingData = { ...req.body, owner: req.user.id, status: 'pending' };
 
     // Auto-set expiry to 30 days from now
     listingData.expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
     // Generate AI Description
-    try {
-        const aiContent = await generateAIContent(listingData);
-        if (aiContent) {
-            listingData.aiDescription = {
-                description: aiContent.description,
-                townVibe: aiContent.townVibe,
-                generatedAt: new Date()
-            };
-        }
-    } catch (error) {
-        console.error("AI Generation failed", error);
+    const aiContent = await generateAIContent(listingData);
+    if (aiContent) {
+        listingData.aiDescription = {
+            description: aiContent.description,
+            townVibe: aiContent.townVibe,
+            generatedAt: new Date()
+        };
     }
 
     // Auto-tag listing using NLP
     try {
-        const tagResult = await runAiScript('auto_tagger.py', {
+        const tagResult = await aiService.executeScript('auto_tagger.py', {
             title: listingData.title || '',
             description: listingData.description || '',
             amenities: listingData.amenities || {},
@@ -217,17 +190,13 @@ const updateListing = asyncHandler(async (req, res) => {
     if (updateData.description || updateData.location || updateData.amenities) {
         // Merge current listing data with update data for context
         const contextData = { ...listing.toObject(), ...updateData };
-        try {
-            const aiContent = await generateAIContent(contextData);
-            if (aiContent) {
-                updateData.aiDescription = {
-                    description: aiContent.description,
-                    townVibe: aiContent.townVibe,
-                    generatedAt: new Date()
-                };
-            }
-        } catch (error) {
-            console.error("AI Update failed", error);
+        const aiContent = await generateAIContent(contextData);
+        if (aiContent) {
+            updateData.aiDescription = {
+                description: aiContent.description,
+                townVibe: aiContent.townVibe,
+                generatedAt: new Date()
+            };
         }
     }
 
@@ -250,6 +219,15 @@ const deleteListing = asyncHandler(async (req, res) => {
         res.status(401);
         throw new Error('Not authorized');
     }
+
+    // Cascading delete: Remove all associated data
+    await Promise.all([
+        Booking.deleteMany({ listing: listing._id }),
+        Review.deleteMany({ listing: listing._id }),
+        Inquiry.deleteMany({ listing: listing._id }),
+        Favorite.deleteMany({ listingId: listing._id }),
+        Report.deleteMany({ listing: listing._id })
+    ]);
 
     await listing.deleteOne();
     res.status(200).json({ id: req.params.id });
@@ -480,6 +458,16 @@ const bulkUploadListings = asyncHandler(async (req, res) => {
         failedRows: []
     };
 
+    const cleanupFile = () => {
+        if (req.file && fs.existsSync(req.file.path)) {
+            try {
+                fs.unlinkSync(req.file.path);
+            } catch (cleanupErr) {
+                console.error('Failed to delete uploaded file:', cleanupErr);
+            }
+        }
+    };
+
     fs.createReadStream(req.file.path)
         .pipe(csv())
         .on('data', (row) => {
@@ -511,18 +499,23 @@ const bulkUploadListings = asyncHandler(async (req, res) => {
                 results.errors++;
             }
         })
+        .on('error', (error) => {
+            cleanupFile();
+            res.status(500);
+            throw new Error('CSV parsing failed: ' + error.message);
+        })
         .on('end', async () => {
             try {
                 if (listings.length > 0) {
                     const created = await Listing.insertMany(listings);
                     results.success = created.length;
                 }
-                // Cleanup file
-                fs.unlinkSync(req.file.path);
                 res.status(201).json(results);
             } catch (err) {
                 res.status(500);
                 throw new Error('Batch insert failed: ' + err.message);
+            } finally {
+                cleanupFile();
             }
         });
 });

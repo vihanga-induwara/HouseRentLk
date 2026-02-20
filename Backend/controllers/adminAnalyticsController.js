@@ -1,6 +1,6 @@
 const asyncHandler = require('express-async-handler');
 const Listing = require('../models/Listing');
-const { runAiScript } = require('../utils/aiRunner');
+const aiService = require('../services/aiService');
 
 // @desc    Get platform health and heatmaps
 // @route   GET /api/admin/health-analytics
@@ -10,7 +10,7 @@ const getPlatformHealth = asyncHandler(async (req, res) => {
     const listings = await Listing.find({}, 'location.town status createdAt');
 
     try {
-        const analytics = await runAiScript('health_analytics.py', { listings });
+        const analytics = await aiService.executeScript('health_analytics.py', { listings });
         res.json(analytics);
     } catch (error) {
         res.status(500);
@@ -29,8 +29,7 @@ const getActivitySummary = asyncHandler(async (req, res) => {
     res.json({
         total: totalListings,
         pending: pendingListings,
-        approved: approvedListings,
-        activeRate: totalListings > 0 ? (approvedListings / totalListings * 100).toFixed(1) + '%' : '0%'
+        activeRate: totalListings > 0 ? ((approvedListings / totalListings) * 100).toFixed(1) + '%' : '0%'
     });
 });
 

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Input from '../components/Input';
 import Button from '../components/Button';
+import { toast } from 'react-hot-toast';
 import { LogIn } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -17,22 +18,30 @@ const Login = () => {
         e.preventDefault();
         setIsLoading(true);
 
-        const result = await login(email, password);
-        setIsLoading(false);
+        try {
+            const result = await login(email, password);
 
-        if (result.success) {
-            // Role-based redirection
-            if (result.user.role === 'admin') {
-                navigate('/admin');
+            if (result.success) {
+                // Role-based redirection
+                if (result.user.role === 'admin') {
+                    navigate('/admin');
+                } else {
+                    navigate('/');
+                }
             } else {
-                navigate('/');
+                toast.error(result.message || 'Login failed. Please check your credentials.');
             }
+        } catch (error) {
+            toast.error('An unexpected error occurred. Please try again.');
+            console.error(error);
+        } finally {
+            setIsLoading(false);
         }
     };
 
     return (
         <div className="flex justify-center items-center min-h-[80vh]">
-            <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-100 w-full max-w-md">
+            <div className="bg-white p-6 md:p-8 rounded-xl shadow-lg border border-gray-100 w-full max-w-md">
                 <div className="text-center mb-8">
                     <div className="bg-primary-50 p-3 rounded-full inline-block mb-4">
                         <LogIn className="h-8 w-8 text-primary-600" />

@@ -23,6 +23,26 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
+// Rate Limiting
+const rateLimit = require('express-rate-limit');
+
+// General limiter
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // limit each IP to 100 requests per windowMs
+    message: 'Too many requests from this IP, please try again after 15 minutes'
+});
+app.use(limiter);
+
+// Auth limiter (stricter)
+const authLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000, // 1 hour
+    max: 10, // limit each IP to 10 login/register requests per hour
+    message: 'Too many login attempts from this IP, please try again after an hour'
+});
+app.use('/api/auth', authLimiter);
+app.use('/api/inquiries', authLimiter); // strict on inquiries too
+
 // Routes
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/listings', require('./routes/listingRoutes'));
@@ -46,6 +66,11 @@ app.use('/uploads', express.static(path.join(__dirname, '/uploads')));
 app.get('/', (req, res) => {
     res.send('API is running...');
 });
+
+// Error Handling Middleware
+const { notFound, errorHandler } = require('./middleware/errorMiddleware');
+app.use(notFound);
+app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 

@@ -35,6 +35,11 @@ const Profile = () => {
     const [nicPreviews, setNicPreviews] = useState([]);
     const [verifying, setVerifying] = useState(false);
 
+    // Contact Verification State
+    const [otp, setOtp] = useState('');
+    const [showOtpConfirm, setShowOtpConfirm] = useState(false);
+    const [verificationTarget, setVerificationTarget] = useState(null); // 'email' or 'phone'
+
     useEffect(() => {
         if (user) {
             setFormData({
@@ -129,6 +134,38 @@ const Profile = () => {
         }
     };
 
+    const handleSendOtp = async (type) => {
+        setLoading(true);
+        try {
+            await API.post('/auth/send-otp', { type });
+            setVerificationTarget(type);
+            setShowOtpConfirm(true);
+            toast.success(`OTP sent to your ${type}`);
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Failed to send OTP');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleVerifyOtp = async () => {
+        if (!otp) return toast.error('Please enter OTP');
+        setLoading(true);
+        try {
+            await API.post('/auth/verify-otp', { type: verificationTarget, otp });
+            toast.success(`${verificationTarget} verified successfully!`);
+            setShowOtpConfirm(false);
+            setOtp('');
+
+            // Refresh user data (simple reload for now or update context if possible)
+            setTimeout(() => window.location.reload(), 1000);
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Invalid OTP');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
@@ -149,19 +186,19 @@ const Profile = () => {
     };
 
     return (
-        <div className="max-w-6xl mx-auto px-4 py-12 bg-slate-50/50 min-h-screen">
-            <div className="flex items-center justify-between mb-10">
+        <div className="max-w-6xl mx-auto px-4 py-8 md:py-12 bg-slate-50/50 min-h-screen">
+            <div className="flex items-center justify-between mb-8 md:mb-10">
                 <div>
-                    <h1 className="text-4xl font-black text-slate-900 tracking-tight italic">Profile <span className="text-primary-600">Settings</span></h1>
+                    <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight italic">Profile <span className="text-primary-600">Settings</span></h1>
                     <p className="text-slate-500 mt-1 font-medium">Manage your identity and matching preferences</p>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8">
                 {/* Left Sidebar */}
-                <div className="lg:col-span-4 space-y-8">
+                <div className="lg:col-span-4 space-y-6 md:space-y-8">
                     {/* User Card */}
-                    <div className="bg-white p-8 rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100 text-center relative overflow-hidden">
+                    <div className="bg-white p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100 text-center relative overflow-hidden">
                         <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-primary-500 to-blue-500"></div>
 
                         <div className="relative inline-block mb-6 group">
@@ -188,33 +225,47 @@ const Profile = () => {
                             <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-full text-[10px] font-black uppercase tracking-widest">
                                 {user?.role}
                             </span>
-                            {user?.isVerified && (
+                            {user?.verificationStatus === 'verified' && (
                                 <span className="px-3 py-1 bg-green-100 text-green-600 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-1">
-                                    <ShieldCheck className="h-3 w-3" /> Verified
+                                    <ShieldCheck className="h-3 w-3" /> ID Verified
                                 </span>
                             )}
                         </div>
 
                         <div className="mt-8 pt-8 border-t border-slate-100 text-left space-y-4">
-                            <div className="flex items-center text-slate-600 bg-slate-50/50 p-4 rounded-2xl border border-slate-100">
-                                <Mail className="h-5 w-5 mr-4 text-primary-500" />
-                                <div>
-                                    <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Email</div>
-                                    <div className="font-bold text-sm">{user?.email}</div>
+                            <div className="flex items-center justify-between text-slate-600 bg-slate-50/50 p-4 rounded-2xl border border-slate-100">
+                                <div className="flex items-center">
+                                    <Mail className="h-5 w-5 mr-4 text-primary-500" />
+                                    <div>
+                                        <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Email</div>
+                                        <div className="font-bold text-sm truncate max-w-[120px]">{user?.email}</div>
+                                    </div>
                                 </div>
+                                {user?.isEmailVerified ? (
+                                    <CheckCircle className="h-5 w-5 text-green-500" />
+                                ) : (
+                                    <button onClick={() => handleSendOtp('email')} className="text-xs font-bold text-primary-600 hover:underline">Verify</button>
+                                )}
                             </div>
-                            <div className="flex items-center text-slate-600 bg-slate-50/50 p-4 rounded-2xl border border-slate-100">
-                                <Phone className="h-5 w-5 mr-4 text-primary-500" />
-                                <div>
-                                    <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Phone</div>
-                                    <div className="font-bold text-sm">{user?.phone || 'Not provided'}</div>
+                            <div className="flex items-center justify-between text-slate-600 bg-slate-50/50 p-4 rounded-2xl border border-slate-100">
+                                <div className="flex items-center">
+                                    <Phone className="h-5 w-5 mr-4 text-primary-500" />
+                                    <div>
+                                        <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Phone</div>
+                                        <div className="font-bold text-sm">{user?.phone || 'Not provided'}</div>
+                                    </div>
                                 </div>
+                                {user?.isPhoneVerified ? (
+                                    <CheckCircle className="h-5 w-5 text-green-500" />
+                                ) : (
+                                    user?.phone && <button onClick={() => handleSendOtp('phone')} className="text-xs font-bold text-primary-600 hover:underline">Verify</button>
+                                )}
                             </div>
                         </div>
                     </div>
 
-                    {/* Verification Card */}
-                    <div className="bg-white p-8 rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100">
+                    {/* Verification Card (ID) - Keeping existing logic, just improved text */}
+                    <div className="bg-white p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100">
                         <div className="flex items-center gap-3 mb-6">
                             <div className="p-2 bg-primary-100 rounded-xl">
                                 <ShieldCheck className="h-6 w-6 text-primary-600" />
@@ -234,8 +285,7 @@ const Profile = () => {
                                     </div>
                                 )}
                                 <p className="text-sm text-slate-500 font-medium leading-relaxed">
-                                    Upload your NIC or Passport to unlock the <span className="text-primary-600 font-bold">Verified Badge</span>.
-                                    Verified users get 3x more interest.
+                                    Upload your NIC or Passport.
                                 </p>
 
                                 <div className="space-y-3">
@@ -276,7 +326,7 @@ const Profile = () => {
                                 </div>
                                 <p className="text-lg font-black text-amber-900 italic">Under Review</p>
                                 <p className="text-xs text-amber-700 mt-2 font-medium leading-relaxed">
-                                    Our team is verifying your identity. This usually takes 24-48 hours.
+                                    Our team is verifying your identity.
                                 </p>
                             </div>
                         ) : (
@@ -292,9 +342,27 @@ const Profile = () => {
                 </div>
 
                 {/* Main Content Area */}
-                <div className="lg:col-span-8 space-y-8">
+                <div className="lg:col-span-8 space-y-6 md:space-y-8">
+                    {/* OTP Entry UI (Conditional) */}
+                    {showOtpConfirm && (
+                        <div className="bg-white p-6 md:p-8 rounded-[2rem] border-2 border-primary-500 shadow-xl animate-in fade-in slide-in-from-top-4">
+                            <h3 className="text-xl font-bold mb-4">Verify {verificationTarget === 'email' ? 'Email Address' : 'Phone Number'}</h3>
+                            <p className="text-sm text-slate-500 mb-4">Enter the code sent to your {verificationTarget}.</p>
+                            <div className="flex gap-4">
+                                <Input
+                                    value={otp}
+                                    onChange={(e) => setOtp(e.target.value)}
+                                    placeholder="Enter OTP"
+                                    className="text-center tracking-widest text-lg font-bold"
+                                />
+                                <Button onClick={handleVerifyOtp} isLoading={loading}>Verify</Button>
+                                <Button variant="outline" onClick={() => setShowOtpConfirm(false)}>Cancel</Button>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Basic Info */}
-                    <div className="bg-white p-10 rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100">
+                    <div className="bg-white p-6 md:p-10 rounded-[2rem] md:rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100">
                         <div className="flex items-center gap-3 mb-10">
                             <div className="p-2 bg-blue-100 rounded-xl">
                                 <User className="h-6 w-6 text-blue-600" />
@@ -350,7 +418,7 @@ const Profile = () => {
 
                     {/* Renter Matching Preferences */}
                     {user?.role === 'renter' && (
-                        <div className="bg-white p-10 rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100 relative overflow-hidden">
+                        <div className="bg-white p-6 md:p-10 rounded-[2rem] md:rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100 relative overflow-hidden">
                             <div className="absolute top-0 right-0 p-8 opacity-10">
                                 <Heart className="h-24 w-24 text-primary-500" />
                             </div>

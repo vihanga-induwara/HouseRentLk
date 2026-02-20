@@ -35,4 +35,8 @@ const bookingSchema = new mongoose.Schema({
     timestamps: true
 });
 
+// Prevent double bookings: A listing cannot be booked for the same date & time slot twice
+bookingSchema.index({ listing: 1, date: 1, timeSlot: 1 }, { unique: true });
+
+
 module.exports = mongoose.model('Booking', bookingSchema);

@@ -1,11 +1,14 @@
 import sys
 import json
 import re
+from typing import Dict, Any, List, Tuple
 
 # Red flags / spam indicators
-SPAM_PATTERNS = [
+SPAM_PATTERNS: List[Tuple[str, str, str]] = [
     # Suspicious pricing
-    (r'\bfree\b', 'price_suspicious', 'Claims property is free'),
+    # Use negative lookbehind (?<!...) to avoid matching "smoke free", "debt free", etc.
+    # Python re requires fixed width lookbehind, so we chain them
+    (r'\b(?<!smoke\s)(?<!debt\s)(?<!worry\s)(?<!hassle\s)(?<!break\s)(?<!rent\s)(?<!commission\s)free\b', 'price_suspicious', 'Claims property is free'),
     (r'\b(?:only|just)\s*(?:lkr\s*)?\d{2,3}\s*(?:per|/)\s*month', 'price_suspicious', 'Unrealistically low price claimed'),
 
     # Urgency scams
@@ -21,7 +24,8 @@ SPAM_PATTERNS = [
     (r'\b(?:xxx|adult|escort|massage)\b', 'inappropriate', 'Contains inappropriate content'),
 
     # All caps abuse
-    (r'[A-Z\s]{20,}', 'caps_abuse', 'Excessive use of capital letters'),
+    # Use (?-i:...) to force case-sensitive matching for uppercase letters
+    (r'(?-i:[A-Z\s]{20,})', 'caps_abuse', 'Excessive use of capital letters'),
 
     # Emoji spam
     (r'[\U0001F600-\U0001F64F\U0001F680-\U0001F6FF]{5,}', 'emoji_spam', 'Excessive emoji usage'),
@@ -42,12 +46,12 @@ QUALITY_CHECKS = {
     'no_town': lambda d: not d.get('town', '').strip(),
 }
 
-def detect_spam(listing_data):
+def detect_spam(listing_data: Dict[str, Any]) -> Dict[str, Any]:
     """
     Analyze a listing for spam, scam, and quality indicators.
     Returns a trust score (0-100) and list of flagged issues.
     """
-    flags = []
+    flags: List[Dict[str, Any]] = []
     score = 100
 
     title = listing_data.get('title', '')
@@ -146,6 +150,11 @@ def detect_spam(listing_data):
     }
 
 if __name__ == '__main__':
-    input_data = json.loads(sys.stdin.read())
-    result = detect_spam(input_data)
-    print(json.dumps(result))
+    try:
+        input_data = json.loads(sys.stdin.read())
+        result = detect_spam(input_data)
+        print(json.dumps(result))
+    except json.JSONDecodeError:
+        print(json.dumps({"trustScore": 0, "verdict": "error", "error": "Invalid JSON"}))
+    except Exception as e:
+        print(json.dumps({"trustScore": 0, "verdict": "error", "error": str(e)}))

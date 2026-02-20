@@ -359,9 +359,9 @@ const Browse = () => {
 
                 {/* Main Content */}
                 <main className="flex-1 min-w-0">
-                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-6">
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 md:mb-8 gap-6">
                         <div>
-                            <h1 className="text-4xl font-black text-slate-900 dark:text-white italic tracking-tighter mb-2">Available <span className="text-primary-600">Inventory</span></h1>
+                            <h1 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white italic tracking-tighter mb-2">Available <span className="text-primary-600">Inventory</span></h1>
                             <div className="flex flex-col md:flex-row md:items-center gap-3 mb-4">
                                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{resultsStats.total} Properties discovered</span>
                                 <button
@@ -407,9 +407,9 @@ const Browse = () => {
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-3 flex-wrap">
+                        <div className="flex items-center gap-3 flex-wrap w-full md:w-auto">
                             {/* Sort Dropdown */}
-                            <div className="relative">
+                            <div className="relative flex-1 md:flex-none">
                                 <ArrowUpDown className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
                                 <select
                                     value={filters.sort}
@@ -422,7 +422,7 @@ const Browse = () => {
                                         setSearchParams(newParams);
                                     }}
                                     aria-label="Sort listings"
-                                    className="pl-8 pr-4 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl border-2 border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-200 focus:border-primary-500 outline-none appearance-none cursor-pointer"
+                                    className="w-full md:w-auto pl-8 pr-4 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl border-2 border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-200 focus:border-primary-500 outline-none appearance-none cursor-pointer"
                                 >
                                     {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                                 </select>
@@ -449,12 +449,12 @@ const Browse = () => {
                     </div>
 
                     {/* AI Smart Search Bar */}
-                    <div className="mb-8 bg-gradient-to-r from-violet-50 to-indigo-50 dark:from-violet-900/20 dark:to-indigo-900/20 p-5 rounded-3xl border border-violet-100 dark:border-violet-800">
+                    <div className="mb-8 bg-gradient-to-r from-violet-50 to-indigo-50 dark:from-violet-900/20 dark:to-indigo-900/20 p-4 md:p-5 rounded-[2rem] md:rounded-3xl border border-violet-100 dark:border-violet-800">
                         <div className="flex items-center gap-2 mb-3">
                             <Zap className="h-4 w-4 text-violet-600" />
                             <span className="text-[10px] font-black text-violet-600 uppercase tracking-widest">AI Smart Search</span>
                         </div>
-                        <div className="flex gap-3">
+                        <div className="flex flex-col md:flex-row gap-3">
                             <div className="flex-1 relative">
                                 <Sparkles className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-violet-400" />
                                 <input
@@ -462,20 +462,20 @@ const Browse = () => {
                                     value={nlpQuery}
                                     onChange={(e) => setNlpQuery(e.target.value)}
                                     onKeyDown={(e) => e.key === 'Enter' && handleNlpSearch()}
-                                    placeholder='Try: "2 bed house in Kandy under 30k" or "furnished apartment with parking"'
+                                    placeholder='Try: "2 bed house in Kandy under 30k"'
                                     className="w-full pl-11 pr-4 py-4 text-sm font-bold rounded-2xl border-2 border-violet-100 dark:border-violet-700 bg-white dark:bg-slate-800 focus:border-violet-400 outline-none dark:text-white transition-all"
                                 />
                             </div>
                             <button
                                 onClick={handleNlpSearch}
                                 disabled={nlpParsing || !nlpQuery.trim()}
-                                className="px-6 py-4 bg-violet-600 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2 shadow-xl shadow-violet-500/20"
+                                className="w-full md:w-auto justify-center px-6 py-4 bg-violet-600 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2 shadow-xl shadow-violet-500/20"
                             >
                                 {nlpParsing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
                                 {nlpParsing ? 'Parsing...' : 'Search'}
                             </button>
                         </div>
-                        <p className="text-[10px] text-violet-400 mt-2 font-bold">Describe what you're looking for in plain language — our AI will find it.</p>
+                        <p className="hidden md:block text-[10px] text-violet-400 mt-2 font-bold">Describe what you're looking for in plain language — our AI will find it.</p>
                     </div>
 
                     {/* Error state */}
@@ -509,7 +509,7 @@ const Browse = () => {
                                         <Button onClick={resetFilters} variant="outline" className="rounded-2xl px-10 py-4 font-black uppercase tracking-widest text-[10px] border-2 border-slate-200">Clear Filters</Button>
                                     </div>
                                 ) : (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-10">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-10">
                                         {listings.map((listing) => (
                                             filters.source === 'external' ? (
                                                 <ExternalListingCard key={listing._id} listing={listing} />
@@ -522,7 +522,7 @@ const Browse = () => {
                             </>
                         ) : (
                             /* Interactive Map */
-                            <div className="relative h-[750px] bg-slate-100 dark:bg-slate-800 rounded-[3rem] overflow-hidden shadow-2xl group border-4 border-white dark:border-slate-700 z-0">
+                            <div className="relative h-[500px] md:h-[750px] bg-slate-100 dark:bg-slate-800 rounded-[2rem] md:rounded-[3rem] overflow-hidden shadow-2xl group border-4 border-white dark:border-slate-700 z-0">
                                 <MapContainer
                                     center={[7.8731, 80.7718]}
                                     zoom={8}
