@@ -1,0 +1,8 @@
+name = "houserentlk-frontend"
+compatibility_date = "2024-03-20"
+
+[assets]
+directory = "./Frontend/dist"
+
+[build]
+command = "cd Frontend && npm install && npm run build"
