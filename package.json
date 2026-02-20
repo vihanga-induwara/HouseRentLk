@@ -1,0 +1,12 @@
+{
+    "name": "houserentlk",
+    "version": "1.0.0",
+    "description": "Root deployment wrapper for Railway.",
+    "engines": {
+        "node": ">=18.0.0"
+    },
+    "scripts": {
+        "install": "cd Backend && npm install",
+        "start": "cd Backend && npm start"
+    }
+}
