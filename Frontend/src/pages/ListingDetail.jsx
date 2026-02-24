@@ -1,7 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import API from '../utils/api';
-import { Shield, Tag, Eye, Calendar, CheckCircle } from 'lucide-react';
+import {
+    Heart, Share2, MapPin, Calendar, Clock, Star, Info, Shield, CheckCircle, Tag,
+    ChevronRight, ChevronLeft, Eye, Send, MessageCircle, AlertTriangle, ShieldAlert,
+    Camera, Image as ImageIcon, X
+} from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-hot-toast';
 import { NO_IMAGE_PLACEHOLDER } from '../utils/constants';
@@ -18,6 +22,8 @@ import ListingDescription from '../components/listing/ListingDescription';
 import ListingReviews from '../components/listing/ListingReviews';
 import ListingSimilar from '../components/listing/ListingSimilar';
 import ListingSidebar from '../components/listing/ListingSidebar';
+import LoanCalculator from '../components/LoanCalculator';
+import { formatTimeAgo, formatFullDate } from '../utils/format';
 
 const ListingDetail = () => {
     const { id } = useParams();
@@ -44,6 +50,10 @@ const ListingDetail = () => {
     // Report modal
     const [showReport, setShowReport] = useState(false);
     const [reportReason, setReportReason] = useState('');
+    const [reportDescription, setReportDescription] = useState('');
+    const [reportScreenshot, setReportScreenshot] = useState(null);
+    const [screenshotPreview, setScreenshotPreview] = useState(null);
+    const [reportContactEmail, setReportContactEmail] = useState(user?.email || '');
     const [submittingReport, setSubmittingReport] = useState(false);
 
     useEffect(() => {
@@ -150,7 +160,8 @@ const ListingDetail = () => {
                     title: listingData.title,
                     image: listingData.images?.[0],
                     price: listingData.price,
-                    viewedAt: new Date().toISOString()
+                    viewedAt: new Date().toISOString(),
+                    createdAt: listingData.createdAt
                 });
                 localStorage.setItem('recentlyViewed', JSON.stringify(filtered.slice(0, 10)));
             } catch { /* silent */ }
@@ -187,17 +198,54 @@ const ListingDetail = () => {
 
     const handleReport = async () => {
         if (!user) { toast.error('Please login to report'); return; }
-        if (!reportReason.trim()) { toast.error('Please provide a reason'); return; }
+        if (!reportReason.trim()) { toast.error('Please select a reason'); return; }
+        if (!reportDescription.trim()) { toast.error('Please provide a description'); return; }
+
         setSubmittingReport(true);
         try {
-            await API.post('/listings/report', { listingId: id, reason: reportReason });
+            let screenshotUrl = '';
+
+            // 1. Upload screenshot if selected
+            if (reportScreenshot) {
+                const uploadData = new FormData();
+                uploadData.append('images', reportScreenshot);
+                const uploadRes = await API.post('/upload/multiple', uploadData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
+                screenshotUrl = uploadRes.data[0];
+            }
+
+            // 2. Submit report
+            await API.post('/listings/report', {
+                listingId: id,
+                reason: reportReason,
+                description: reportDescription,
+                screenshot: screenshotUrl,
+                contactEmail: reportContactEmail
+            });
+
             toast.success('Listing reported. Our team will review it.');
             setShowReport(false);
             setReportReason('');
+            setReportDescription('');
+            setReportScreenshot(null);
+            setScreenshotPreview(null);
         } catch (error) {
             toast.error(error.response?.data?.message || 'Failed to report');
         } finally {
             setSubmittingReport(false);
+        }
+    };
+
+    const handleScreenshotChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            if (file.size > 5 * 1024 * 1024) {
+                toast.error('File size should be less than 5MB');
+                return;
+            }
+            setReportScreenshot(file);
+            setScreenshotPreview(URL.createObjectURL(file));
         }
     };
 
@@ -232,7 +280,7 @@ const ListingDetail = () => {
         contactDetails, aiDescription,
         virtualTourUrl, isUrgent, views,
         availableVisits, tenantType, houseRules, minRentalPeriod,
-        agreementRequired, availableFrom, furnished, autoTags
+        agreementRequired, availableFrom, furnished, autoTags, createdAt
     } = listing;
 
     const displayAddress = location ? `${location.address}, ${location.town}` : 'Address Unavailable';
@@ -247,26 +295,123 @@ const ListingDetail = () => {
 
             {/* Report Modal */}
             {showReport && (
-                <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-md shadow-2xl p-8">
-                        <h3 className="font-black text-slate-900 dark:text-white text-xl mb-2">Report Listing</h3>
-                        <p className="text-slate-500 text-sm mb-6">Help us keep HouseRentLk safe. Describe why this listing is problematic.</p>
-                        <textarea
-                            value={reportReason}
-                            onChange={(e) => setReportReason(e.target.value)}
-                            placeholder="e.g. Fake listing, wrong price, offensive content..."
-                            rows={4}
-                            className="w-full px-4 py-3 rounded-2xl border-2 border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 dark:text-white font-medium text-sm resize-none focus:border-red-400 outline-none"
-                        />
-                        <div className="flex gap-3 mt-6">
-                            <button onClick={() => setShowReport(false)} className="flex-1 py-3 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-black">Cancel</button>
-                            <button onClick={handleReport} disabled={submittingReport} className="flex-1 py-3 rounded-xl bg-red-600 text-white font-black disabled:opacity-60">
-                                {submittingReport ? 'Sending...' : 'Submit Report'}
+                <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4 overflow-y-auto">
+                    <div className="bg-white dark:bg-slate-800 rounded-[2.5rem] w-full max-w-lg shadow-2xl p-8 my-auto border border-slate-100 dark:border-slate-700">
+                        <div className="flex items-center gap-3 mb-2">
+                            <div className="p-2 bg-red-50 dark:bg-red-900/20 rounded-xl">
+                                <ShieldAlert className="h-6 w-6 text-red-600" />
+                            </div>
+                            <h3 className="font-black text-slate-900 dark:text-white text-xl">Report Listing</h3>
+                        </div>
+                        <p className="text-slate-500 dark:text-slate-400 text-sm mb-8 font-medium">Help us keep HouseRentLk safe for everyone.</p>
+
+                        <div className="space-y-6">
+                            {/* Reason */}
+                            <div>
+                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Reason for Report</label>
+                                <select
+                                    value={reportReason}
+                                    onChange={(e) => setReportReason(e.target.value)}
+                                    className="w-full px-5 py-4 rounded-2xl border-2 border-slate-50 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 dark:text-white font-bold text-sm outline-none focus:border-red-500 transition-colors"
+                                >
+                                    <option value="">Select a reason...</option>
+                                    <option value="Fake Listing / Incorrect Address">Fake Listing / Incorrect Address</option>
+                                    <option value="Incorrect Price / Hidden Charges">Incorrect Price / Hidden Charges</option>
+                                    <option value="Offensive Content / Hate Speech">Offensive Content / Hate Speech</option>
+                                    <option value="Spam / Multiple Postings">Spam / Multiple Postings</option>
+                                    <option value="Misleading Photos">Misleading Photos</option>
+                                    <option value="Listing Already Rented">Listing Already Rented</option>
+                                    <option value="Other / Unusual Activity">Other / Unusual Activity</option>
+                                </select>
+                            </div>
+
+                            {/* Description */}
+                            <div>
+                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">What happened? (Detailed)</label>
+                                <textarea
+                                    value={reportDescription}
+                                    onChange={(e) => setReportDescription(e.target.value)}
+                                    placeholder="Please provide more context or evidence..."
+                                    rows={4}
+                                    className="w-full px-5 py-4 rounded-2xl border-2 border-slate-50 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 dark:text-white font-medium text-sm resize-none focus:border-red-500 outline-none transition-colors"
+                                />
+                                <div className="text-[10px] text-slate-400 mt-2 font-bold flex justify-end">
+                                    {reportDescription.length}/1000
+                                </div>
+                            </div>
+
+                            {/* Screenshot Upload */}
+                            <div>
+                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Attachment (Optional)</label>
+                                {screenshotPreview ? (
+                                    <div className="relative group rounded-2xl overflow-hidden border-2 border-slate-100 dark:border-slate-700">
+                                        <img src={screenshotPreview} alt="Screenshot preview" className="w-full h-40 object-cover" />
+                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                            <button
+                                                onClick={() => {
+                                                    setReportScreenshot(null);
+                                                    setScreenshotPreview(null);
+                                                }}
+                                                className="p-3 bg-red-600 text-white rounded-full hover:scale-110 transition-transform"
+                                            >
+                                                <X className="h-5 w-5" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <label className="flex flex-col items-center justify-center w-full h-32 px-4 transition bg-slate-50 dark:bg-slate-900 border-2 border-slate-50 dark:border-slate-700 border-dashed rounded-2xl cursor-pointer hover:border-red-400 dark:hover:border-red-500">
+                                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                            <Camera className="w-8 h-8 text-slate-400 mb-2" />
+                                            <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Attach Screenshot</p>
+                                        </div>
+                                        <input type="file" className="hidden" accept="image/*" onChange={handleScreenshotChange} />
+                                    </label>
+                                )}
+                            </div>
+
+                            {/* Contact Email */}
+                            <div>
+                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Your Email (For follow-up)</label>
+                                <input
+                                    type="email"
+                                    value={reportContactEmail}
+                                    onChange={(e) => setReportContactEmail(e.target.value)}
+                                    className="w-full px-5 py-4 rounded-2xl border-2 border-slate-50 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 dark:text-white font-bold text-sm outline-none focus:border-red-500 transition-colors"
+                                    placeholder="Enter your email"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex gap-4 mt-10">
+                            <button
+                                onClick={() => {
+                                    setShowReport(false);
+                                    setReportScreenshot(null);
+                                    setScreenshotPreview(null);
+                                }}
+                                className="flex-1 py-4 rounded-2xl bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-black uppercase tracking-widest text-[10px] hover:bg-slate-200 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleReport}
+                                disabled={submittingReport}
+                                className="flex-1 py-4 rounded-2xl bg-red-600 text-white font-black uppercase tracking-widest text-[10px] shadow-xl shadow-red-500/20 active:scale-95 disabled:opacity-60 transition-all flex items-center justify-center gap-2"
+                            >
+                                {submittingReport ? (
+                                    <>
+                                        <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                        Processing...
+                                    </>
+                                ) : (
+                                    <>Submit Report <Send className="h-3 w-3" /></>
+                                )}
                             </button>
                         </div>
                     </div>
                 </div>
             )}
+
 
             <ListingHeader
                 title={title}
@@ -307,6 +452,9 @@ const ListingDetail = () => {
                             )}
                             <span className="flex items-center gap-1.5 text-slate-400 text-[10px] font-black uppercase tracking-widest">
                                 <Eye className="h-4 w-4" /> {views || 0} Views
+                            </span>
+                            <span className="flex items-center gap-1.5 text-slate-400 text-[10px] font-black uppercase tracking-widest ml-auto">
+                                <Calendar className="h-4 w-4" /> Posted {formatTimeAgo(createdAt)}, posted at {formatFullDate(createdAt)}
                             </span>
                         </div>
 
@@ -362,6 +510,8 @@ const ListingDetail = () => {
                         price={price}
                         town={location?.town}
                     />
+
+                    <LoanCalculator defaultAmount={price} />
 
                     <ListingMap listing={listing} aiDescription={aiDescription} />
 

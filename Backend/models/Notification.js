@@ -16,6 +16,7 @@ const notificationSchema = new mongoose.Schema(
                 'listing_rejected',
                 'listing_expiring',
                 'listing_favorited',
+                'new_listing_from_followed',
             ],
             required: true,
         },

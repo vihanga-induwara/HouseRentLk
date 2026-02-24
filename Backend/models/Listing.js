@@ -88,6 +88,7 @@ const listingSchema = mongoose.Schema(
 
         // Additional Info
         isUrgent: { type: Boolean, default: false },
+        isFeatured: { type: Boolean, default: false },
         agreementRequired: { type: Boolean, default: false },
         availableFrom: { type: Date, default: Date.now },
         tenantType: { type: String, enum: ['Family', 'Students', 'Professionals', 'Any'], default: 'Any' },

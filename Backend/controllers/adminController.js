@@ -180,11 +180,47 @@ const getStats = asyncHandler(async (req, res) => {
     });
 });
 
+// @desc    Get all reports
+// @route   GET /api/admin/reports
+// @access  Private (Admin)
+const getReports = asyncHandler(async (req, res) => {
+    const reports = await Report.find()
+        .populate('reporter', 'name email')
+        .populate('listing', 'title images price status')
+        .sort({ createdAt: -1 });
+    res.status(200).json(reports);
+});
+
+// @desc    Update report status
+// @route   PUT /api/admin/reports/:id/status
+// @access  Private (Admin)
+const updateReportStatus = asyncHandler(async (req, res) => {
+    const { status } = req.body; // 'reviewed', 'dismissed'
+    console.log(`[DEBUG] Updating report ${req.params.id} to status: ${status}`);
+
+    const report = await Report.findById(req.params.id);
+
+    if (!report) {
+        console.error(`[ERROR] Report ${req.params.id} not found`);
+        res.status(404);
+        throw new Error('Report not found');
+    }
+
+    report.status = status;
+    await report.save();
+
+    console.log(`[SUCCESS] Report ${req.params.id} updated to ${status}`);
+    res.status(200).json({ message: `Report status updated to ${status} successfully`, report });
+});
+
+
 module.exports = {
     getUsers,
     getUserDetails,
     updateUserStatus,
     updateUser,
     deleteUser,
-    getStats
+    getStats,
+    getReports,
+    updateReportStatus
 };

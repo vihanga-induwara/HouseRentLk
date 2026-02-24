@@ -25,8 +25,7 @@ const app = express();
 
 // Security Middlewares
 app.use(helmet()); // Secure HTTP headers
-app.use(mongoSanitize()); // Prevent NoSQL operator injection
-app.use(xss()); // Prevent Cross-Site Scripting (XSS) attacks
+// express-mongo-sanitize and xss-clean are removed due to Express 5 / Node 24 incompatibility causing global res.setHeader crashes.
 
 // Logging middleware
 if (process.env.NODE_ENV !== 'test') {
@@ -54,11 +53,13 @@ const authLimiter = rateLimit({
     max: 10, // limit each IP to 10 login/register requests per hour
     message: 'Too many login attempts from this IP, please try again after an hour'
 });
-app.use('/api/auth', authLimiter);
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', authLimiter);
 app.use('/api/inquiries', authLimiter); // strict on inquiries too
 
 // Routes
 app.use('/api/auth', require('./routes/authRoutes'));
+app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/listings', require('./routes/listingRoutes'));
 app.use('/api/admin', require('./routes/adminRoutes'));
 app.use('/api/upload', require('./routes/uploadRoutes'));

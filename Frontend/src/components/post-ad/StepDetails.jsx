@@ -69,10 +69,22 @@ const StepDetails = ({ formData, handleChange, priceSuggestion, onFetchPriceSugg
             </div>
         )}
 
-        <label className="flex items-center space-x-2 mt-2">
-            <input type="checkbox" name="negotiable" checked={formData.negotiable} onChange={handleChange} className="rounded text-primary-600 focus:ring-primary-500" />
-            <span className="text-slate-700 font-medium">Price is Negotiable</span>
-        </label>
+        <div className="flex flex-col sm:flex-row gap-4 mt-2">
+            <label className="flex items-center space-x-2">
+                <input type="checkbox" name="negotiable" checked={formData.negotiable} onChange={handleChange} className="rounded text-primary-600 focus:ring-primary-500" />
+                <span className="text-slate-700 font-medium">Price is Negotiable</span>
+            </label>
+            <label className="flex items-center space-x-2">
+                <input type="checkbox" name="isUrgent" checked={formData.isUrgent} onChange={handleChange} className="rounded text-red-600 focus:ring-red-500" />
+                <span className="text-red-700 font-bold uppercase tracking-widest text-[10px]">Mark as Urgent Ad</span>
+            </label>
+            {user?.role === 'admin' && (
+                <label className="flex items-center space-x-2">
+                    <input type="checkbox" name="isFeatured" checked={formData.isFeatured} onChange={handleChange} className="rounded text-amber-600 focus:ring-amber-500" />
+                    <span className="text-amber-700 font-bold uppercase tracking-widest text-[10px]">Featured Listing</span>
+                </label>
+            )}
+        </div>
     </div>
 );
 

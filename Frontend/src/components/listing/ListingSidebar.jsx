@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Sparkles, ShieldCheck, Send, MessageSquare, Phone, CheckCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Sparkles, ShieldCheck, Send, MessageSquare, Phone, CheckCircle, Bell, BellOff } from 'lucide-react';
 import Button from '../Button';
 import API from '../../utils/api';
 import { toast } from 'react-hot-toast';
@@ -18,6 +18,42 @@ const ListingSidebar = ({ listing, priceFairness, user }) => {
     const [inquiryMsg, setInquiryMsg] = useState('');
     const [sendingInquiry, setSendingInquiry] = useState(false);
     const [inquirySent, setInquirySent] = useState(false);
+    const [isFollowing, setIsFollowing] = useState(false);
+    const [followingLoading, setFollowingLoading] = useState(false);
+
+    useEffect(() => {
+        const checkFollowStatus = async () => {
+            if (user && owner?._id) {
+                try {
+                    const { data } = await API.get(`/users/follow-status/${owner._id}`);
+                    setIsFollowing(data.isFollowing);
+                } catch (err) {
+                    console.error('Failed to check follow status', err);
+                }
+            }
+        };
+        checkFollowStatus();
+    }, [user, owner?._id]);
+
+    const handleFollow = async () => {
+        if (!user) { toast.error('Please login to follow'); return; }
+        setFollowingLoading(true);
+        try {
+            if (isFollowing) {
+                await API.post(`/users/unfollow/${owner._id}`);
+                setIsFollowing(false);
+                toast.success('Unfollowed');
+            } else {
+                await API.post(`/users/follow/${owner._id}`);
+                setIsFollowing(true);
+                toast.success('Following');
+            }
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Action failed');
+        } finally {
+            setFollowingLoading(false);
+        }
+    };
 
     const handleInquiry = async () => {
         if (!user) { toast.error('Please login'); return; }
@@ -84,12 +120,27 @@ const ListingSidebar = ({ listing, priceFairness, user }) => {
                         )}
                     </div>
                     <div>
-                        <div className="flex items-center gap-2">
-                            <p className="font-black text-slate-900 dark:text-white italic tracking-tight">{owner?.name}</p>
-                            {owner?.verificationStatus === 'verified' && <ShieldCheck className="h-4 w-4 text-primary-500" title="Identity Verified" />}
+                        <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                                <p className="font-black text-slate-900 dark:text-white italic tracking-tight">{owner?.name}</p>
+                                {owner?.verificationStatus === 'verified' && <ShieldCheck className="h-4 w-4 text-primary-500" title="Identity Verified" />}
+                            </div>
+                            {user?.id !== owner?._id && (
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); handleFollow(); }}
+                                    disabled={followingLoading}
+                                    className={`p-2 rounded-full transition-all ${isFollowing
+                                        ? 'bg-primary-100 text-primary-600 dark:bg-primary-900/30'
+                                        : 'bg-slate-100 text-slate-400 hover:text-primary-500 dark:bg-slate-700'
+                                        }`}
+                                    title={isFollowing ? 'Unfollow' : 'Follow for updates'}
+                                >
+                                    {isFollowing ? <Bell className="h-4 w-4 fill-current" /> : <BellOff className="h-4 w-4" />}
+                                </button>
+                            )}
                         </div>
                         <div className="flex items-center gap-2 mt-1">
-                            <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Owner</div>
+                            <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{owner?.role === 'broker' ? 'Verified Broker' : 'Owner'}</div>
                             {owner?.isEmailVerified && <span className="bg-green-100 text-green-700 text-[8px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">Email Verified</span>}
                             {owner?.isPhoneVerified && <span className="bg-blue-100 text-blue-700 text-[8px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">Phone Verified</span>}
                         </div>

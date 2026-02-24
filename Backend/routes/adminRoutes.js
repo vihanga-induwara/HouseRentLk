@@ -10,7 +10,9 @@ const {
     updateUserStatus,
     updateUser,
     deleteUser,
-    getStats
+    getStats,
+    getReports,
+    updateReportStatus
 } = require('../controllers/adminController');
 const {
     getPlatformHealth,
@@ -38,5 +40,9 @@ router.put('/users/:id/status', updateUserStatus);
 router.get('/stats', getStats);
 router.get('/health-analytics', getPlatformHealth);
 router.get('/activity-summary', getActivitySummary);
+
+// Report Management
+router.get('/reports', getReports);
+router.put('/reports/:id/status', updateReportStatus);
 
 module.exports = router;

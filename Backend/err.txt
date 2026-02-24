@@ -1,0 +1,11 @@
+TypeError: Cannot set property query of #<IncomingMessage> which has only a getter
+    at D:\HouseRentLk\Backend\node_modules\express-mongo-sanitize\index.js:113:18
+    at Array.forEach (<anonymous>)
+    at D:\HouseRentLk\Backend\node_modules\express-mongo-sanitize\index.js:110:44
+    at Layer.handleRequest (D:\HouseRentLk\Backend\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (D:\HouseRentLk\Backend\node_modules\router\index.js:342:13)
+    at D:\HouseRentLk\Backend\node_modules\router\index.js:297:9
+    at processParams (D:\HouseRentLk\Backend\node_modules\router\index.js:582:12)
+    at next (D:\HouseRentLk\Backend\node_modules\router\index.js:291:5)
+    at router.handle (D:\HouseRentLk\Backend\node_modules\router\index.js:186:3)
+    at app.handle (D:\HouseRentLk\Backend\node_modules\express\lib\application.js:177:15)

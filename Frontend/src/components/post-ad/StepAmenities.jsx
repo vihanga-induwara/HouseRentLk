@@ -15,6 +15,34 @@ const StepAmenities = ({ amenities, toggle }) => (
                 </label>
             ))}
         </div>
+
+        <div className="mt-8 pt-8 border-t border-slate-100">
+            <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest mb-6">Proximity Data (Optional)</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Distance to Nearest Temple/Church (km)</label>
+                    <input
+                        type="number"
+                        step="0.1"
+                        placeholder="e.g. 0.5"
+                        value={amenities.templeDistance}
+                        onChange={(e) => toggle('templeDistance', e.target.value)}
+                        className="w-full px-5 py-4 text-sm font-bold border-2 border-slate-100 rounded-2xl focus:border-primary-500 bg-slate-50/50 outline-none transition-all"
+                    />
+                </div>
+                <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Distance to Main Road (km)</label>
+                    <input
+                        type="number"
+                        step="0.1"
+                        placeholder="e.g. 0.2"
+                        value={amenities.mainRoadDistance}
+                        onChange={(e) => toggle('mainRoadDistance', e.target.value)}
+                        className="w-full px-5 py-4 text-sm font-bold border-2 border-slate-100 rounded-2xl focus:border-primary-500 bg-slate-50/50 outline-none transition-all"
+                    />
+                </div>
+            </div>
+        </div>
     </div>
 );
 

@@ -19,6 +19,9 @@ import AdminScrapingPanel from './pages/AdminScrapingPanel';
 import AdminScrapedListings from './pages/AdminScrapedListings';
 import AdminMarketReport from './pages/AdminMarketReport';
 import AdminScrapingSettings from './pages/AdminScrapingSettings';
+import Brokers from './pages/Brokers';
+import BrokerProfile from './pages/BrokerProfile';
+import LoanCalculatorPage from './pages/LoanCalculatorPage';
 import NotFound from './pages/NotFound';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -40,6 +43,9 @@ function App() {
               <Route path="/compare" element={<CompareListings />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/brokers" element={<Brokers />} />
+              <Route path="/brokers/:id" element={<BrokerProfile />} />
+              <Route path="/loan-calculator" element={<LoanCalculatorPage />} />
 
               {/* Protected Routes */}
               <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />

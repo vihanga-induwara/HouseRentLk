@@ -7,7 +7,7 @@ import { toast } from 'react-hot-toast';
 import {
     User, Mail, Phone, Camera, Save, ShieldCheck,
     FileText, AlertCircle, Upload, Heart, MapPin,
-    Briefcase, Sparkles, CheckCircle
+    Briefcase, Sparkles, CheckCircle, Bell, Users
 } from 'lucide-react';
 
 const Profile = () => {
@@ -31,9 +31,26 @@ const Profile = () => {
         bedsMin: '',
     });
 
-    const [nicFiles, setNicFiles] = useState([]);
-    const [nicPreviews, setNicPreviews] = useState([]);
     const [verifying, setVerifying] = useState(false);
+    const [followers, setFollowers] = useState([]);
+    const [fetchingFollowers, setFetchingFollowers] = useState(false);
+
+    useEffect(() => {
+        const fetchFollowers = async () => {
+            if (user?.role === 'broker' || user?.role === 'owner') {
+                setFetchingFollowers(true);
+                try {
+                    const { data } = await API.get('/users/followers');
+                    setFollowers(data.data);
+                } catch (err) {
+                    console.error('Failed to fetch followers', err);
+                } finally {
+                    setFetchingFollowers(false);
+                }
+            }
+        };
+        fetchFollowers();
+    }, [user?.role]);
 
 
 
@@ -301,6 +318,59 @@ const Profile = () => {
 
                 {/* Main Content Area */}
                 <div className="lg:col-span-8 space-y-6 md:space-y-8">
+                    {/* Followers Card (For Brokers/Owners) */}
+                    {(user?.role === 'broker' || user?.role === 'owner') && (
+                        <div className="bg-white p-6 md:p-10 rounded-[2rem] md:rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100 italic">
+                            <div className="flex items-center justify-between mb-8">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-primary-100 rounded-xl">
+                                        <Users className="h-6 w-6 text-primary-600" />
+                                    </div>
+                                    <h3 className="text-2xl font-black text-slate-900 tracking-tight">Your <span className="text-primary-600">Followers</span></h3>
+                                </div>
+                                <div className="px-4 py-2 bg-slate-100 rounded-2xl text-sm font-black text-slate-600">
+                                    {followers.length}
+                                </div>
+                            </div>
+
+                            {fetchingFollowers ? (
+                                <div className="flex justify-center py-10">
+                                    <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary-500 border-t-transparent"></div>
+                                </div>
+                            ) : followers.length > 0 ? (
+                                <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                                    {followers.map((follower) => (
+                                        <div key={follower._id} className="flex items-center justify-between p-4 bg-slate-50/50 rounded-2xl border border-slate-100 hover:bg-white hover:shadow-md transition-all group">
+                                            <div className="flex items-center gap-4">
+                                                <div className="h-12 w-12 bg-slate-900 rounded-xl flex items-center justify-center text-white font-black text-lg">
+                                                    {follower.avatar && follower.avatar !== 'default-avatar.png' ? (
+                                                        <img src={follower.avatar} alt="" className="h-full w-full object-cover rounded-xl" />
+                                                    ) : (
+                                                        follower.name.charAt(0)
+                                                    )}
+                                                </div>
+                                                <div>
+                                                    <p className="font-black text-slate-900 group-hover:text-primary-600 transition-colors uppercase tracking-tight">{follower.name}</p>
+                                                    <p className="text-[10px] text-slate-500 font-medium">Joined {new Date(follower.createdAt).toLocaleDateString()}</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex flex-col items-end">
+                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{follower.phone || 'No Phone'}</p>
+                                                <p className="text-[10px] text-slate-400 truncate max-w-[120px]">{follower.email}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="text-center py-12 px-6 bg-slate-50/50 rounded-[2rem] border-2 border-dashed border-slate-100">
+                                    <Bell className="h-12 w-12 text-slate-200 mx-auto mb-4" />
+                                    <p className="text-sm font-black text-slate-400 uppercase tracking-widest leading-relaxed">
+                                        No followers yet.<br />Post more listings to build your audience!
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     {/* Basic Info */}
                     <div className="bg-white p-6 md:p-10 rounded-[2rem] md:rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100">

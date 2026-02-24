@@ -94,7 +94,7 @@ def scrape_page(url, rate_limit=2000):
     """Fetch and parse a single page."""
     try:
         time.sleep(rate_limit / 1000.0)
-        response = requests.get(url, headers=HEADERS, timeout=15)
+        response = requests.get(url, headers=HEADERS, timeout=30)
         response.raise_for_status()
         return BeautifulSoup(response.text, 'lxml')
     except requests.RequestException as e:
@@ -117,12 +117,13 @@ def scrape_ikman(config):
     }
 
     for page in range(1, max_pages + 1):
-        url = SEARCH_URL
+        url = "https://ikman.lk/en/ads/sri-lanka/house-rentals"
         params = []
         if page > 1:
             params.append(f"page={page}")
         if location:
-            url = f"https://ikman.lk/en/ads/{location.lower().replace(' ', '-')}/properties?type=rent"
+            # If location is provided, ikman uses a slug in the URL
+            url = f"https://ikman.lk/en/ads/{location.lower().replace(' ', '-')}/house-rentals"
         if price_min:
             params.append(f"price_min={price_min}")
         if price_max:
@@ -141,51 +142,78 @@ def scrape_ikman(config):
         stats['pagesScraped'] += 1
 
         # Parse listing cards
-        ad_cards = soup.select('li[class*="ad-card"], div[class*="ad-card"], a[class*="card"]')
+        # New selector based on verification: a[class*="gtm-ad-item"]
+        ad_cards = soup.select('a[class*="gtm-ad-item"]')
         
-        # Fallback: try common ikman listing selectors
+        # Fallback for different list views if needed
+        if not ad_cards:
+            ad_cards = soup.select('li[class*="ad-card"], div[class*="ad-card"], a[class*="card"]')
+        
         if not ad_cards:
             ad_cards = soup.select('[data-testid="ad-card"], .list--item, .ad-item')
-        
-        # Generic fallback for list items with links
-        if not ad_cards:
-            ad_cards = soup.select('ul li a[href*="/ad/"]')
 
         for card in ad_cards:
             try:
-                # Extract title
-                title_el = card.select_one('h2, h3, [class*="title"], [data-testid="title"]')
-                title = title_el.get_text(strip=True) if title_el else ''
+                # Extract title - verification showed <h2> is common inside the link
+                # But it might be merging with other text if we're not careful
+                title_el = card.select_one('h2')
+                if not title_el:
+                    title_el = card.select_one('h3, [class*="title"], [data-testid="title"]')
+                
+                title = title_el.get_text(strip=True) if title_el else card.get('title', '')
                 if not title:
                     continue
 
-                # Extract link
-                link_el = card if card.name == 'a' else card.select_one('a[href]')
-                href = link_el.get('href', '') if link_el else ''
+                # Extract link - the card itself is an <a> tag now
+                href = card.get('href', '')
                 if href and not href.startswith('http'):
                     href = BASE_URL + href
 
                 # Extract price
-                price_el = card.select_one('[class*="price"], [data-testid="price"]')
-                price_text = price_el.get_text(strip=True) if price_el else ''
+                price_text = ""
+                price_el = card.select_one('div[class*="price"], span[class*="price"], [data-testid="price"]')
+                if not price_el:
+                    # Fallback search for Rs
+                    for el in card.find_all(['span', 'div']):
+                        if 'Rs' in el.get_text():
+                            price_text = el.get_text(strip=True)
+                            break
+                else:
+                    price_text = price_el.get_text(strip=True)
+                
                 price = parse_price(price_text)
 
-                # Extract location
-                loc_el = card.select_one('[class*="location"], [data-testid="location"], [class*="subtitle"]')
-                raw_location = loc_el.get_text(strip=True) if loc_el else ''
+                # Extract location - ikman usually has it in a div with a specific class or near a comma
+                raw_location = ""
+                loc_el = card.select_one('[class*="location"], [data-testid="location"]')
+                if loc_el:
+                    raw_location = loc_el.get_text(strip=True)
+                else:
+                    # Look for the location div which usually has a sub-label style
+                    for div in card.find_all('div'):
+                        div_text = div.get_text(strip=True)
+                        if ',' in div_text and any(d in div_text.lower() for d in DISTRICT_PROVINCE_MAP.keys()):
+                            # Make sure it's not the title again
+                            if div_text != title:
+                                raw_location = div_text
+                                break
                 
                 # Parse location parts
                 town = raw_location.split(',')[0].strip() if raw_location else ''
                 district, province = guess_district(raw_location)
 
-                # Extract description (may need detail page)
+                # Extract description
+                description = ""
                 desc_el = card.select_one('[class*="description"], p')
-                description = desc_el.get_text(strip=True) if desc_el else ''
+                if desc_el and desc_el.get_text(strip=True) != title:
+                    description = desc_el.get_text(strip=True)
 
                 # Extract image
-                img_el = card.select_one('img[src]')
+                img_el = card.select_one('img')
                 image_url = img_el.get('src', '') if img_el else ''
-                images = [image_url] if image_url and 'placeholder' not in image_url.lower() else []
+                if not image_url and img_el:
+                    image_url = img_el.get('data-src', '')
+                images = [image_url] if image_url and 'placeholder' not in image_url.lower() and image_url.startswith('http') else []
 
                 # Extract beds/baths from description or tags
                 full_text = f"{title} {description}"
@@ -249,6 +277,12 @@ def scrape_ikman(config):
 
 if __name__ == '__main__':
     try:
+        # Force UTF-8 for output
+        if sys.platform == 'win32':
+            import io
+            sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+            sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
+
         input_data = sys.stdin.read().strip()
         if not input_data:
             config = {}

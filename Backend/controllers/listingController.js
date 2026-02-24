@@ -7,6 +7,8 @@ const Inquiry = require('../models/Inquiry');
 const Report = require('../models/Report');
 const Booking = require('../models/Booking');
 const Review = require('../models/Review');
+const User = require('../models/User');
+const SavedSearch = require('../models/SavedSearch');
 const { createNotification } = require('./notificationController');
 const aiService = require('../services/aiService');
 
@@ -22,6 +24,8 @@ const getListings = asyncHandler(async (req, res) => {
         type,
         furnished,
         sort,
+        isUrgent,
+        isFeatured,
         page = 1,
         limit = 12
     } = req.query;
@@ -40,6 +44,7 @@ const getListings = asyncHandler(async (req, res) => {
 
     // Advanced Filtering
     if (town) query['location.town'] = { $regex: escapeRegex(town), $options: 'i' };
+    if (req.query.owner) query.owner = req.query.owner;
     if (minPrice || maxPrice) {
         query.price = {};
         if (minPrice) query.price.$gte = Number(minPrice);
@@ -48,6 +53,8 @@ const getListings = asyncHandler(async (req, res) => {
     if (beds) query.beds = beds === '4+' ? { $gte: 4 } : Number(beds);
     if (type && type !== 'Any') query.type = type;
     if (furnished && furnished !== 'Any') query.furnished = furnished;
+    if (isUrgent === 'true') query.isUrgent = true;
+    if (isFeatured === 'true') query.isFeatured = true;
 
     // Amenities
     const amenities = ['solarPower', 'ac', 'parking', 'wifi', 'garden'];
@@ -268,6 +275,50 @@ const updateListingStatus = asyncHandler(async (req, res) => {
                 : `Your listing "${listing.title}" was rejected. Please review and resubmit.`,
             link: '/my-listings',
         });
+
+        // Notify followers if approved
+        if (status === 'approved') {
+            const followers = await User.find({ following: listing.owner });
+            const notificationPromises = followers.map(follower =>
+                createNotification({
+                    userId: follower._id,
+                    type: 'new_listing_from_followed',
+                    title: 'New Listing from Followed Broker! 🏠',
+                    message: `A broker you follow posted a new listing: "${listing.title}"`,
+                    link: `/listings/${listing._id}`,
+                })
+            );
+            await Promise.all(notificationPromises);
+        }
+
+        // Notify users with matching Saved Searches
+        if (status === 'approved') {
+            const savedSearches = await SavedSearch.find({ isAlertActive: true });
+
+            for (const search of savedSearches) {
+                const { filters, user: userId } = search;
+                let matches = true;
+
+                if (filters.town && !listing.location.town.toLowerCase().includes(filters.town.toLowerCase())) matches = false;
+                if (filters.minPrice && listing.price < filters.minPrice) matches = false;
+                if (filters.maxPrice && listing.price > filters.maxPrice) matches = false;
+                if (filters.beds && listing.beds < filters.beds) matches = false;
+                if (filters.type && filters.type !== 'Any' && listing.type !== filters.type) matches = false;
+
+                if (matches) {
+                    await createNotification({
+                        userId: userId,
+                        type: 'listing_favorited', // Reuse or add new type
+                        title: `New Match for "${search.name}"! 🔍`,
+                        message: `A new property matching your saved search "${search.name}" was just posted in ${listing.location.town}.`,
+                        link: `/listings/${listing._id}`,
+                    });
+
+                    search.lastNotifiedAt = Date.now();
+                    await search.save();
+                }
+            }
+        }
     }
 
     res.status(200).json(updatedListing);
@@ -545,11 +596,11 @@ const getSimilarListings = asyncHandler(async (req, res) => {
 // @route   POST /api/listings/report
 // @access  Private
 const reportListing = asyncHandler(async (req, res) => {
-    const { listingId, reason } = req.body;
+    const { listingId, reason, description, screenshot, contactEmail } = req.body;
 
-    if (!listingId || !reason) {
+    if (!listingId || !reason || !description) {
         res.status(400);
-        throw new Error('Listing ID and reason are required');
+        throw new Error('Listing ID, reason, and description are required');
     }
 
     const listing = await Listing.findById(listingId);
@@ -568,8 +619,12 @@ const reportListing = asyncHandler(async (req, res) => {
     const report = await Report.create({
         reporter: req.user.id,
         listing: listingId,
-        reason
+        reason,
+        description,
+        screenshot,
+        contactEmail
     });
+
 
     // Notify admins
     try {

@@ -77,7 +77,13 @@ const userSchema = mongoose.Schema(
             type: String,
             enum: ['active', 'inactive', 'suspended', 'blocked'],
             default: 'active'
-        }
+        },
+        following: [
+            {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'User'
+            }
+        ]
     },
     {
         timestamps: true,

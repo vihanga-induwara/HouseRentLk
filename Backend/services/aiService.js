@@ -62,7 +62,7 @@ class AiService {
                 if (code !== 0) {
                     console.error(`[AiService] Error in ${scriptName}: ${errorString}`);
                     // return resolve(null); // Optional: Resolve null instead of rejecting for graceful failure
-                    return reject(new Error(`Script ${scriptName} exited with code ${code}. Error: ${errorString}`));
+                    return reject(new Error(`Script ${scriptName} exited with code ${code}. Error: ${errorString.substring(0, 500)}`));
                 }
 
                 try {
@@ -91,11 +91,13 @@ class AiService {
                 }
             });
 
-            // Timeout safety (30 seconds)
+            // Timeout safety (120 seconds for scraping jobs)
             setTimeout(() => {
-                pythonProcess.kill();
-                reject(new Error(`Script ${scriptName} timed out after 30s`));
-            }, 30000);
+                if (pythonProcess.exitCode === null) {
+                    pythonProcess.kill();
+                    reject(new Error(`Script ${scriptName} timed out after 120s`));
+                }
+            }, 120000);
         });
     }
 }

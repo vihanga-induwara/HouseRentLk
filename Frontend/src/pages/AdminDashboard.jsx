@@ -4,13 +4,14 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import {
     Users, Home as HomeIcon, Eye, Check, X, ShieldAlert, TrendingUp,
-    FileText, UserCheck, UserX, Search, Filter, ShieldCheck, Edit2, Trash2, Globe
+    FileText, UserCheck, UserX, Search, Filter, ShieldCheck, Edit2, Trash2, Globe,
+    Image as ImageIcon, Layout, Palette
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { formatCurrency } from '../utils/format';
 import { NO_IMAGE_PLACEHOLDER } from '../utils/constants';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { Layout, Palette } from 'lucide-react';
+
 
 const AdminDashboard = () => {
     const { user, loading } = useAuth();
@@ -22,8 +23,10 @@ const AdminDashboard = () => {
     const [stats, setStats] = useState({});
     const [listings, setListings] = useState([]);
     const [users, setUsers] = useState([]);
+    const [reports, setReports] = useState([]);
     const [pendingVerifications, setPendingVerifications] = useState([]);
     const [filters, setFilters] = useState({ role: '', search: '' });
+    const [actionLoading, setActionLoading] = useState({}); // { [reportId]: true }
 
     useEffect(() => {
         if (!loading && (!user || user.role !== 'admin')) {
@@ -37,24 +40,26 @@ const AdminDashboard = () => {
         }
     }, [user, loading, navigate]);
 
-    const fetchData = async () => {
-        setIsLoading(true);
+    const fetchData = async (silent = false) => {
+        if (!silent) setIsLoading(true);
         try {
-            const [statsRes, listingsRes, usersRes, verificationsRes] = await Promise.all([
+            const [statsRes, listingsRes, usersRes, verificationsRes, reportsRes] = await Promise.all([
                 API.get('/admin/stats'),
                 API.get('/admin/listings'),
                 API.get('/admin/users'),
-                API.get('/verification/pending')
+                API.get('/verification/pending'),
+                API.get('/admin/reports')
             ]);
             setStats(statsRes.data);
             setListings(listingsRes.data);
             setUsers(usersRes.data);
             setPendingVerifications(verificationsRes.data);
+            setReports(reportsRes.data);
         } catch (error) {
             console.error(error);
             toast.error('Failed to fetch data');
         } finally {
-            setIsLoading(false);
+            if (!silent) setIsLoading(false);
         }
     };
 
@@ -101,6 +106,30 @@ const AdminDashboard = () => {
         }
     };
 
+    const handleReportStatus = async (id, status) => {
+        if (actionLoading[id]) return;
+
+        console.log(`[DEBUG] Attempting to update report ${id} to ${status}`);
+        setActionLoading(prev => ({ ...prev, [id]: true }));
+
+        try {
+            await API.put(`/admin/reports/${id}/status`, { status });
+            toast.success(`Report marked as ${status}`);
+
+            // Optimistic update to reflect changes immediately
+            setReports(prev => prev.map(report =>
+                report._id === id ? { ...report, status } : report
+            ));
+
+            // Silent refresh in background
+            await fetchData(true);
+        } catch (error) {
+            console.error(`[ERROR] Failed to update report ${id}:`, error);
+            toast.error('Failed to update report status');
+        } finally {
+            setActionLoading(prev => ({ ...prev, [id]: false }));
+        }
+    };
     const handleDeleteListing = async (id) => {
         if (!window.confirm('Are you sure you want to delete this listing?')) return;
         try {
@@ -202,7 +231,7 @@ const AdminDashboard = () => {
                             }`}
                     >
                         <ShieldAlert className="h-4 w-4 inline mr-2" />
-                        Disputes
+                        Disputes ({reports.length})
                     </button>
                     <button
                         onClick={() => setActiveTab('palette')}
@@ -649,39 +678,93 @@ const AdminDashboard = () => {
 
             {/* Disputes Tab */}
             {activeTab === 'disputes' && (
-                <div className="bg-white rounded-[2.5rem] shadow-xl border border-slate-100 overflow-hidden">
-                    <div className="p-8 border-b border-slate-100 flex items-center justify-between">
+                <div className="bg-white dark:bg-slate-800 rounded-[2.5rem] shadow-xl border border-slate-100 dark:border-slate-700 overflow-hidden">
+                    <div className="p-8 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
                         <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest">Platform Integrity Center</h3>
-                        <span className="bg-red-50 text-red-600 px-4 py-1.5 rounded-full text-xs font-black">2 Critical Reports</span>
+                        <span className={`px-4 py-1.5 rounded-full text-xs font-black ${reports.filter(r => r.status === 'pending').length > 0 ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'}`}>
+                            {reports.filter(r => r.status === 'pending').length} Pending Reports
+                        </span>
                     </div>
-                    <div className="divide-y divide-slate-100">
-                        {[
-                            { id: 1, type: 'Listing', target: 'Luxury Villa in Negombo', reason: 'Misleading photos', reportedBy: 'John Doe', date: '2026-02-18' },
-                            { id: 2, type: 'User', target: 'Amila Perera', reason: 'Spam inquiries', reportedBy: 'Kasun Silva', date: '2026-02-17' }
-                        ].map(dispute => (
-                            <div key={dispute.id} className="p-8 hover:bg-slate-50 transition-all flex items-center justify-between group">
-                                <div className="flex items-center gap-6">
-                                    <div className="w-12 h-12 bg-red-50 rounded-2xl flex items-center justify-center text-red-500 border border-red-100">
-                                        <ShieldAlert className="h-6 w-6" />
-                                    </div>
-                                    <div>
-                                        <div className="flex items-center gap-3 mb-1">
-                                            <span className="text-[10px] font-black uppercase text-red-500 tracking-widest">{dispute.type} Report</span>
-                                            <h4 className="font-black text-slate-900">{dispute.target}</h4>
-                                        </div>
-                                        <p className="text-sm text-slate-500 italic">" {dispute.reason} "</p>
-                                        <p className="text-[10px] text-slate-400 mt-2 font-bold uppercase tracking-widest">Reported by {dispute.reportedBy} • {dispute.date}</p>
-                                    </div>
-                                </div>
-                                <div className="flex gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <button className="px-6 py-2.5 bg-slate-900 text-white rounded-xl text-xs font-black hover:bg-slate-800 transition-colors">Resolve</button>
-                                    <button className="px-6 py-2.5 border border-slate-200 rounded-xl text-xs font-black hover:bg-slate-100 transition-colors">Dismiss</button>
-                                </div>
+                    <div className="divide-y divide-slate-100 dark:divide-slate-700">
+                        {reports.length === 0 ? (
+                            <div className="p-20 text-center">
+                                <ShieldCheck className="h-16 w-16 text-slate-200 mx-auto mb-4" />
+                                <p className="text-slate-500 font-bold">No reports found.</p>
                             </div>
-                        ))}
+                        ) : (
+                            reports.map(report => (
+                                <div key={report._id} className="p-8 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-all flex flex-col md:flex-row items-start md:items-center justify-between group">
+                                    <div className="flex items-start gap-6">
+                                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border ${report.status === 'pending' ? 'bg-red-50 text-red-500 border-red-100' : 'bg-slate-50 text-slate-400 border-slate-100'}`}>
+                                            <ShieldAlert className="h-6 w-6" />
+                                        </div>
+                                        <div>
+                                            <div className="flex items-center gap-3 mb-1 flex-wrap">
+                                                <span className={`text-[10px] font-black uppercase tracking-widest ${report.status === 'pending' ? 'text-red-500' : 'text-slate-400'}`}>
+                                                    {report.reason}
+                                                </span>
+                                                <h4 className="font-black text-slate-900 dark:text-white">{report.listing?.title || 'Deleted Listing'}</h4>
+                                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${report.status === 'reviewed' ? 'bg-green-100 text-green-700' : report.status === 'dismissed' ? 'bg-slate-100 text-slate-600' : 'bg-red-100 text-red-700'}`}>
+                                                    {report.status}
+                                                </span>
+                                            </div>
+                                            <p className="text-sm text-slate-500 dark:text-slate-400 italic mb-2">" {report.description} "</p>
+
+                                            <div className="flex items-center gap-4 flex-wrap">
+                                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+                                                    Reported by {report.reporter?.name || 'Anonymous'} • {new Date(report.createdAt).toLocaleDateString()}
+                                                </p>
+                                                {report.contactEmail && (
+                                                    <p className="text-[10px] text-primary-500 font-bold uppercase tracking-widest">
+                                                        Contact: {report.contactEmail}
+                                                    </p>
+                                                )}
+                                            </div>
+
+                                            {report.screenshot && (
+                                                <button
+                                                    onClick={() => window.open(report.screenshot, '_blank')}
+                                                    className="mt-4 flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-700 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-300 hover:bg-slate-200 transition-colors"
+                                                >
+                                                    <ImageIcon className="h-4 w-4" /> View Screenshot
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-3 mt-4 md:mt-0 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button
+                                            onClick={() => window.open(`/listings/${report.listing?._id}`, '_blank')}
+                                            className="p-2.5 bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 transition-colors"
+                                            title="View Listing"
+                                        >
+                                            <Eye className="h-5 w-5" />
+                                        </button>
+                                        {report.status === 'pending' && (
+                                            <>
+                                                <button
+                                                    onClick={() => handleReportStatus(report._id, 'reviewed')}
+                                                    disabled={actionLoading[report._id]}
+                                                    className="px-6 py-2.5 bg-slate-900 text-white rounded-xl text-xs font-black hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                >
+                                                    {actionLoading[report._id] ? 'Processing...' : 'Resolve'}
+                                                </button>
+                                                <button
+                                                    onClick={() => handleReportStatus(report._id, 'dismissed')}
+                                                    disabled={actionLoading[report._id]}
+                                                    className="px-6 py-2.5 border border-slate-200 rounded-xl text-xs font-black hover:bg-slate-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                >
+                                                    {actionLoading[report._id] ? 'Processing...' : 'Dismiss'}
+                                                </button>
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+                            ))
+                        )}
                     </div>
                 </div>
             )}
+
 
             {/* Palette Tab */}
             {activeTab === 'palette' && (

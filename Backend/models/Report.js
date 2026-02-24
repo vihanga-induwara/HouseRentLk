@@ -15,8 +15,25 @@ const reportSchema = new mongoose.Schema({
         type: String,
         required: [true, 'Please provide a reason for the report'],
         trim: true,
-        maxlength: 500
+        maxlength: 100
     },
+    description: {
+        type: String,
+        required: [true, 'Please provide a detailed description'],
+        trim: true,
+        maxlength: 1000
+    },
+    screenshot: {
+        type: String, // Cloudinary URL
+    },
+    contactEmail: {
+        type: String,
+        match: [
+            /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/,
+            'Please add a valid email',
+        ],
+    },
+
     status: {
         type: String,
         enum: ['pending', 'reviewed', 'dismissed'],

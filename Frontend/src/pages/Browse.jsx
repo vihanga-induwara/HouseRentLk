@@ -76,6 +76,8 @@ const Browse = () => {
         parking: searchParams.get('parking') === 'true',
         wifi: searchParams.get('wifi') === 'true',
         page: Number(searchParams.get('page')) || 1,
+        isUrgent: searchParams.get('isUrgent') === 'true',
+        isFeatured: searchParams.get('isFeatured') === 'true',
         source: searchParams.get('source') || 'internal', // 'internal' or 'external'
     }), [searchParams]);
 
@@ -141,6 +143,7 @@ const Browse = () => {
         const reset = {
             town: '', minPrice: '', maxPrice: '', beds: '', type: 'Any',
             furnished: 'Any', sort: '', ac: false, parking: false, wifi: false, page: 1,
+            isUrgent: false, isFeatured: false,
             source: 'internal'
         };
         setFilters(reset);
@@ -334,21 +337,38 @@ const Browse = () => {
                             <div>
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 block">Amenities</label>
                                 <div className="space-y-3">
-                                    {[
-                                        { key: 'ac', label: 'Air Conditioning' },
-                                        { key: 'parking', label: 'Parking' },
-                                        { key: 'wifi', label: 'WiFi Included' },
-                                    ].map(({ key, label }) => (
-                                        <label key={key} className="flex items-center gap-3 cursor-pointer group">
-                                            <div
-                                                onClick={() => handleFilterChange(key, !filters[key])}
-                                                className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all cursor-pointer ${filters[key] ? 'bg-primary-600 border-primary-600' : 'border-slate-200 dark:border-slate-600 hover:border-primary-300'}`}
-                                            >
-                                                {filters[key] && <span className="text-white text-xs font-black">✓</span>}
-                                            </div>
-                                            <span className="text-xs font-black text-slate-600 dark:text-slate-300 uppercase tracking-widest">{label}</span>
-                                        </label>
+                                    ].map(({key, label}) => (
+                                    <label key={key} className="flex items-center gap-3 cursor-pointer group">
+                                        <div
+                                            onClick={() => handleFilterChange(key, !filters[key])}
+                                            className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all cursor-pointer ${filters[key] ? 'bg-primary-600 border-primary-600' : 'border-slate-200 dark:border-slate-600 hover:border-primary-300'}`}
+                                        >
+                                            {filters[key] && <span className="text-white text-xs font-black">✓</span>}
+                                        </div>
+                                        <span className="text-xs font-black text-slate-600 dark:text-slate-300 uppercase tracking-widest">{label}</span>
+                                    </label>
                                     ))}
+
+                                    <div className="pt-4 space-y-3 border-t border-slate-100 dark:border-slate-700">
+                                        <label className="flex items-center gap-3 cursor-pointer group">
+                                            <div
+                                                onClick={() => handleFilterChange('isUrgent', !filters.isUrgent)}
+                                                className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all cursor-pointer ${filters.isUrgent ? 'bg-red-600 border-red-600' : 'border-slate-200 dark:border-slate-600 hover:border-red-300'}`}
+                                            >
+                                                {filters.isUrgent && <span className="text-white text-xs font-black">✓</span>}
+                                            </div>
+                                            <span className="text-xs font-black text-red-600 uppercase tracking-widest">Urgent Ads Only</span>
+                                        </label>
+                                        <label className="flex items-center gap-3 cursor-pointer group">
+                                            <div
+                                                onClick={() => handleFilterChange('isFeatured', !filters.isFeatured)}
+                                                className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all cursor-pointer ${filters.isFeatured ? 'bg-amber-600 border-amber-600' : 'border-slate-200 dark:border-slate-600 hover:border-amber-300'}`}
+                                            >
+                                                {filters.isFeatured && <span className="text-white text-xs font-black">✓</span>}
+                                            </div>
+                                            <span className="text-xs font-black text-amber-600 uppercase tracking-widest">Featured Only</span>
+                                        </label>
+                                    </div>
                                 </div>
                             </div>
 

@@ -157,6 +157,28 @@ const updateProfile = asyncHandler(async (req, res) => {
     }
 });
 
+// @desc    Check if email exists
+// @route   GET /api/auth/check-email
+// @access  Public
+const checkEmail = asyncHandler(async (req, res) => {
+    const { email } = req.query;
+
+    if (!email) {
+        res.status(400);
+        throw new Error('Please provide an email');
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        res.status(400);
+        throw new Error('Invalid email format');
+    }
+
+    const userExists = await User.findOne({ email });
+
+    res.status(200).json({ exists: !!userExists });
+});
+
 // Generate JWT
 const generateToken = (id) => {
     if (!process.env.JWT_SECRET) {
@@ -171,5 +193,6 @@ module.exports = {
     registerUser,
     loginUser,
     getMe,
-    updateProfile
+    updateProfile,
+    checkEmail
 };
