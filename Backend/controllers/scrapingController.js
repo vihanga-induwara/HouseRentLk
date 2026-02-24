@@ -3,6 +3,7 @@ const ScrapingSource = require('../models/ScrapingSource');
 const ScrapedListing = require('../models/ScrapedListing');
 const ScrapeJob = require('../models/ScrapeJob');
 const Listing = require('../models/Listing');
+const Settings = require('../models/Settings');
 const aiService = require('../services/aiService');
 const path = require('path');
 
@@ -798,17 +799,26 @@ const getDataQuality = asyncHandler(async (req, res) => {
 // ═══════════════════════════════════════════
 
 // @desc    Get/Set exposure rules
-// @route   GET/PUT /api/admin/scraping/exposure-rules
+// @route   GET /api/admin/scraping/exposure-rules
 const getExposureRules = asyncHandler(async (req, res) => {
-    // For now, return defaults. In production, store in a settings collection.
-    res.status(200).json({
-        maxExternalPercent: 20,
-        boostInternalAlways: true,
-        showDescriptionSnippetOnly: true,
-        showImages: true,
-        forceSourceLink: true,
-        autoExpireDays: 30,
-    });
+    let settings = await Settings.findOne();
+    if (!settings) {
+        settings = await Settings.create({});
+    }
+    res.status(200).json(settings.scrapingRules);
+});
+
+// @desc    Update exposure rules
+// @route   PUT /api/admin/scraping/exposure-rules
+const updateExposureRules = asyncHandler(async (req, res) => {
+    let settings = await Settings.findOne();
+    if (!settings) {
+        settings = await Settings.create({ scrapingRules: req.body });
+    } else {
+        settings.scrapingRules = { ...settings.scrapingRules, ...req.body };
+        await settings.save();
+    }
+    res.status(200).json(settings.scrapingRules);
 });
 
 // @desc    Get conversion stats
@@ -894,7 +904,7 @@ module.exports = {
     // Market Intelligence
     getMarketReport, getPriceComparison, getHotAreas, getDataQuality,
     // Exposure & Conversion
-    getExposureRules, getConversionStats,
+    getExposureRules, updateExposureRules, getConversionStats,
     // Public
     getExternalListings, trackClickThrough,
 };

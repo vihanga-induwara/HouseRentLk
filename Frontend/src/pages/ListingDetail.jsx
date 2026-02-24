@@ -22,7 +22,8 @@ import ListingDescription from '../components/listing/ListingDescription';
 import ListingReviews from '../components/listing/ListingReviews';
 import ListingSimilar from '../components/listing/ListingSimilar';
 import ListingSidebar from '../components/listing/ListingSidebar';
-import LoanCalculator from '../components/LoanCalculator';
+import RentAffordabilityCalculator from '../components/rent-tools/RentAffordabilityCalculator';
+import RentalDepositPlanner from '../components/rent-tools/RentalDepositPlanner';
 import { formatTimeAgo, formatFullDate } from '../utils/format';
 
 const ListingDetail = () => {
@@ -91,7 +92,7 @@ const ListingDetail = () => {
             try {
                 const [fairnessRes, sentimentRes, safetyRes] = await Promise.allSettled([
                     API.get(`/ai/price-fairness/${id}`),
-                    API.get(`/ai/review-sentiment/${id}`),
+                    API.get(`/ai/sentiment/${id}`),
                     API.get(`/ai/safety-score/${id}`),
                 ]);
                 if (fairnessRes.status === 'fulfilled') setPriceFairness(fairnessRes.value.data);
@@ -138,7 +139,7 @@ const ListingDetail = () => {
                 API.get(`/listings/${id}/market-insights`),
                 API.get(`/listings/${id}/similar`),
                 API.get(`/ai/price-fairness/${id}`),
-                API.get(`/ai/review-sentiment/${id}`),
+                API.get(`/ai/sentiment/${id}`),
                 API.get(`/ai/safety-score/${id}`),
             ]).then(results => {
                 const [reviews, insights, similar, fairness, sentiment, safety] = results;
@@ -511,7 +512,10 @@ const ListingDetail = () => {
                         town={location?.town}
                     />
 
-                    <LoanCalculator defaultAmount={price} />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <RentalDepositPlanner defaultRent={price} />
+                        <RentAffordabilityCalculator />
+                    </div>
 
                     <ListingMap listing={listing} aiDescription={aiDescription} />
 
@@ -529,6 +533,7 @@ const ListingDetail = () => {
                         user={user}
                         listingId={id}
                         onReviewAdded={handleReviewAdded}
+                        reviewSentiment={reviewSentiment}
                     />
 
                     <ListingSimilar similarListings={similarListings} />

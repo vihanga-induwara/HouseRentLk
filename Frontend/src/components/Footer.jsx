@@ -1,7 +1,23 @@
+import React, { useState, useEffect } from 'react';
 import { Home, Facebook, Twitter, Instagram, Mail, Phone, MapPin } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import API from '../utils/api';
 
 const Footer = () => {
+    const [settings, setSettings] = useState(null);
+
+    useEffect(() => {
+        const fetchSettings = async () => {
+            try {
+                const { data } = await API.get('/settings');
+                setSettings(data);
+            } catch (error) {
+                console.error("Failed to fetch footer settings", error);
+            }
+        };
+        fetchSettings();
+    }, []);
+
     return (
         <footer className="bg-slate-900 text-slate-300">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -50,15 +66,15 @@ const Footer = () => {
                         <ul className="space-y-2 text-sm">
                             <li className="flex items-start gap-2">
                                 <MapPin className="h-5 w-5 text-primary-500 shrink-0" />
-                                <span>123 Main Street, Colombo 03, Sri Lanka</span>
+                                <span>{settings?.contactAddress || '123 Main Street, Colombo 03, Sri Lanka'}</span>
                             </li>
                             <li className="flex items-center gap-2">
                                 <Phone className="h-5 w-5 text-primary-500 shrink-0" />
-                                <span>+94 11 234 5678</span>
+                                <span>{settings?.contactPhone || '+94 11 234 5678'}</span>
                             </li>
                             <li className="flex items-center gap-2">
                                 <Mail className="h-5 w-5 text-primary-500 shrink-0" />
-                                <span>support@houserentlk.com</span>
+                                <span>{settings?.contactEmail || 'support@houserentlk.com'}</span>
                             </li>
                         </ul>
                     </div>

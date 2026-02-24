@@ -29,6 +29,8 @@ const addReview = asyncHandler(async (req, res) => {
         comment,
     });
 
+    const populatedReview = await Review.findById(review._id).populate('reviewer', 'name avatar');
+
     // Notify the owner
     try {
         await createNotification({
@@ -40,7 +42,7 @@ const addReview = asyncHandler(async (req, res) => {
         });
     } catch (e) { /* ignore notification errors */ }
 
-    res.status(201).json(review);
+    res.status(201).json(populatedReview);
 });
 
 // @desc    Get reviews for a listing

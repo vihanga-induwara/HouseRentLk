@@ -73,7 +73,10 @@ app.use('/api/matching', require('./routes/matchingRoutes'));
 app.use('/api/bookings', require('./routes/bookingRoutes'));
 app.use('/api/saved-searches', require('./routes/savedSearchRoutes'));
 app.use('/api/ai', require('./routes/aiRoutes'));
+app.use('/api/settings', require('./routes/settingsRoutes'));
 app.use('/api/scraping', require('./routes/scrapingRoutes'));
+app.use('/api/pages', require('./routes/pageRoutes'));
+app.use('/api/budget-plans', require('./routes/budgetPlanRoutes'));
 
 const path = require('path');
 app.use('/uploads', express.static(path.join(__dirname, '/uploads')));

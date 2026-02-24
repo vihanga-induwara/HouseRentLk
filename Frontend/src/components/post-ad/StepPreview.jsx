@@ -1,8 +1,33 @@
-import { Loader2, Sparkles } from 'lucide-react';
+import { Loader2, Sparkles, AlertTriangle, ExternalLink } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
-const StepPreview = ({ formData, previews, handleChange, aiTitle, onGenerateTitle, onApplyTitle }) => (
+const StepPreview = ({ formData, previews, handleChange, aiTitle, onGenerateTitle, onApplyTitle, duplicateIssues }) => (
     <div className="space-y-6">
         <h2 className="text-2xl font-bold text-slate-900">Review your Listing</h2>
+
+        {/* Duplicate Warning */}
+        {duplicateIssues && (
+            <div className="bg-amber-50 border-2 border-amber-200 rounded-2xl p-6 flex items-start gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
+                <div className="p-3 bg-amber-100 rounded-xl">
+                    <AlertTriangle className="h-6 w-6 text-amber-600" />
+                </div>
+                <div>
+                    <h3 className="font-black text-amber-900 uppercase tracking-widest text-xs mb-1">Potential Duplicate Detected</h3>
+                    <p className="text-sm text-amber-800 font-medium mb-3">
+                        You already have a very similar listing in {formData.town}. Please ensure you are not posting a duplicate, as it may be rejected during moderation.
+                    </p>
+                    {duplicateIssues.listingId && (
+                        <Link
+                            to={`/listings/${duplicateIssues.listingId}`}
+                            target="_blank"
+                            className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-amber-700 bg-white px-4 py-2 rounded-lg border border-amber-200 hover:bg-amber-50 transition-all shadow-sm"
+                        >
+                            View Existing Listing <ExternalLink className="h-3 w-3" />
+                        </Link>
+                    )}
+                </div>
+            </div>
+        )}
 
         {/* Title & Description with AI */}
         <div className="space-y-4">

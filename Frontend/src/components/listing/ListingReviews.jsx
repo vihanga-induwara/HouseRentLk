@@ -4,13 +4,18 @@ import Button from '../Button';
 import API from '../../utils/api';
 import { toast } from 'react-hot-toast';
 
-const ListingReviews = ({ reviews, user, listingId, onReviewAdded }) => {
+const ListingReviews = ({ reviews, user, listingId, onReviewAdded, reviewSentiment }) => {
     const [newReview, setNewReview] = useState({ rating: 5, comment: '' });
     const [submittingReview, setSubmittingReview] = useState(false);
 
     const avgRating = reviews.length > 0
         ? Math.round(reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviews.length)
         : 0;
+
+    const getSentimentForReview = (reviewId) => {
+        if (!reviewSentiment || !reviewSentiment.reviewSentiments) return null;
+        return reviewSentiment.reviewSentiments.find(s => s.reviewId === reviewId);
+    };
 
     const handleReviewSubmit = async (e) => {
         e.preventDefault();
@@ -86,39 +91,45 @@ const ListingReviews = ({ reviews, user, listingId, onReviewAdded }) => {
                         <p className="text-slate-400 italic font-black uppercase tracking-widest text-xs">Be the first to share your thoughts</p>
                     </div>
                 ) : (
-                    reviews.map(r => (
-                        <div key={r._id} className="p-10 bg-white dark:bg-slate-800 rounded-[2.5rem] border border-slate-100 dark:border-slate-700 shadow-xl shadow-slate-200/30 group hover:translate-y-[-4px] transition-all">
-                            <div className="flex items-center justify-between mb-6">
-                                <div className="flex items-center gap-4">
-                                    <div className="h-12 w-12 rounded-2xl bg-slate-900 dark:bg-slate-700 flex items-center justify-center text-sm font-black text-white italic">
-                                        {r.reviewer?.name?.charAt(0)}
+                    reviews.map(r => {
+                        const sentiment = getSentimentForReview(r._id);
+                        // Fallback to rating-based label if AI sentiment is not available
+                        const label = sentiment ? sentiment.label : (r.rating >= 4 ? 'positive' : r.rating <= 2 ? 'negative' : 'neutral');
+
+                        return (
+                            <div key={r._id} className="p-10 bg-white dark:bg-slate-800 rounded-[2.5rem] border border-slate-100 dark:border-slate-700 shadow-xl shadow-slate-200/30 group hover:translate-y-[-4px] transition-all">
+                                <div className="flex items-center justify-between mb-6">
+                                    <div className="flex items-center gap-4">
+                                        <div className="h-12 w-12 rounded-2xl bg-slate-900 dark:bg-slate-700 flex items-center justify-center text-sm font-black text-white italic">
+                                            {r.reviewer?.name?.charAt(0)}
+                                        </div>
+                                        <div>
+                                            <span className="block font-black text-slate-900 dark:text-white text-lg italic tracking-tight">{r.reviewer?.name}</span>
+                                            <span className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em]">{new Date(r.createdAt).toLocaleDateString()}</span>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <span className="block font-black text-slate-900 dark:text-white text-lg italic tracking-tight">{r.reviewer?.name}</span>
-                                        <span className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em]">{new Date(r.createdAt).toLocaleDateString()}</span>
+                                    <div className="flex gap-0.5">
+                                        {[...Array(5)].map((_, i) => <Star key={i} className={`h-3 w-3 ${i < r.rating ? 'text-amber-400 fill-amber-400' : 'text-slate-200 dark:text-slate-600'}`} />)}
                                     </div>
                                 </div>
-                                <div className="flex gap-0.5">
-                                    {[...Array(5)].map((_, i) => <Star key={i} className={`h-3 w-3 ${i < r.rating ? 'text-amber-400 fill-amber-400' : 'text-slate-200 dark:text-slate-600'}`} />)}
-                                </div>
+                                <p className="text-slate-600 dark:text-slate-300 leading-relaxed font-bold italic">&ldquo;{r.comment}&rdquo;</p>
+                                {/* Sentiment indicator */}
+                                {label === 'positive' ? (
+                                    <div className="mt-3 flex items-center gap-1.5 text-[10px] font-black text-green-600 dark:text-green-400 uppercase tracking-widest">
+                                        <ThumbsUp className="h-3 w-3" /> Positive {sentiment && `(${sentiment.score}%)`}
+                                    </div>
+                                ) : label === 'negative' ? (
+                                    <div className="mt-3 flex items-center gap-1.5 text-[10px] font-black text-red-500 dark:text-red-400 uppercase tracking-widest">
+                                        <ThumbsDown className="h-3 w-3" /> Critical {sentiment && `(${100 - sentiment.score}%)`}
+                                    </div>
+                                ) : (
+                                    <div className="mt-3 flex items-center gap-1.5 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                        <Minus className="h-3 w-3" /> Mixed
+                                    </div>
+                                )}
                             </div>
-                            <p className="text-slate-600 dark:text-slate-300 leading-relaxed font-bold italic">&ldquo;{r.comment}&rdquo;</p>
-                            {/* Sentiment indicator */}
-                            {r.rating >= 4 ? (
-                                <div className="mt-3 flex items-center gap-1.5 text-[10px] font-black text-green-600 dark:text-green-400 uppercase tracking-widest">
-                                    <ThumbsUp className="h-3 w-3" /> Positive
-                                </div>
-                            ) : r.rating <= 2 ? (
-                                <div className="mt-3 flex items-center gap-1.5 text-[10px] font-black text-red-500 dark:text-red-400 uppercase tracking-widest">
-                                    <ThumbsDown className="h-3 w-3" /> Critical
-                                </div>
-                            ) : (
-                                <div className="mt-3 flex items-center gap-1.5 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                                    <Minus className="h-3 w-3" /> Mixed
-                                </div>
-                            )}
-                        </div>
-                    ))
+                        );
+                    })
                 )}
             </div>
         </div>

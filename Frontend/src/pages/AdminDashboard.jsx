@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import {
     Users, Home as HomeIcon, Eye, Check, X, ShieldAlert, TrendingUp,
     FileText, UserCheck, UserX, Search, Filter, ShieldCheck, Edit2, Trash2, Globe,
-    Image as ImageIcon, Layout, Palette
+    Image as ImageIcon, Layout, Palette, Settings as SettingsIcon, Mail, Phone, MapPin, Clock
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { formatCurrency } from '../utils/format';
@@ -27,6 +27,14 @@ const AdminDashboard = () => {
     const [pendingVerifications, setPendingVerifications] = useState([]);
     const [filters, setFilters] = useState({ role: '', search: '' });
     const [actionLoading, setActionLoading] = useState({}); // { [reportId]: true }
+    const [siteSettings, setSiteSettings] = useState({
+        contactEmail: '',
+        contactPhone: '',
+        contactAddress: '',
+        officeHours: '',
+        socialLinks: { facebook: '', twitter: '', instagram: '', linkedin: '' }
+    });
+    const [saveLoading, setSaveLoading] = useState(false);
 
     useEffect(() => {
         if (!loading && (!user || user.role !== 'admin')) {
@@ -43,18 +51,20 @@ const AdminDashboard = () => {
     const fetchData = async (silent = false) => {
         if (!silent) setIsLoading(true);
         try {
-            const [statsRes, listingsRes, usersRes, verificationsRes, reportsRes] = await Promise.all([
+            const [statsRes, listingsRes, usersRes, verificationsRes, reportsRes, settingsRes] = await Promise.all([
                 API.get('/admin/stats'),
                 API.get('/admin/listings'),
                 API.get('/admin/users'),
                 API.get('/verification/pending'),
-                API.get('/admin/reports')
+                API.get('/admin/reports'),
+                API.get('/settings')
             ]);
             setStats(statsRes.data);
             setListings(listingsRes.data);
             setUsers(usersRes.data);
             setPendingVerifications(verificationsRes.data);
             setReports(reportsRes.data);
+            setSiteSettings(settingsRes.data);
         } catch (error) {
             console.error(error);
             toast.error('Failed to fetch data');
@@ -141,14 +151,27 @@ const AdminDashboard = () => {
         }
     };
 
-    const filteredUsers = users.filter(u => {
-        const matchesRole = filters.role ? u.role === filters.role : true;
-        const matchesSearch = filters.search
-            ? u.name.toLowerCase().includes(filters.search.toLowerCase()) ||
-            u.email.toLowerCase().includes(filters.search.toLowerCase())
-            : true;
+    const filteredUsers = users.filter((u) => {
+        const matchesRole = !filters.role || u.role === filters.role;
+        const matchesSearch = !filters.search ||
+            u.name.toLowerCase().includes(filters.search.toLowerCase()) ||
+            u.email.toLowerCase().includes(filters.search.toLowerCase());
         return matchesRole && matchesSearch;
     });
+
+
+    const handleUpdateSettings = async (e) => {
+        e.preventDefault();
+        setSaveLoading(true);
+        try {
+            await API.put('/settings', siteSettings);
+            toast.success('Site settings updated successfully');
+        } catch (error) {
+            toast.error('Failed to update settings');
+        } finally {
+            setSaveLoading(false);
+        }
+    };
 
     if (loading || isLoading) {
         return <div className="flex justify-center items-center h-64">Loading...</div>;
@@ -242,6 +265,16 @@ const AdminDashboard = () => {
                     >
                         <Palette className="h-4 w-4 inline mr-2" />
                         Branding
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('site-settings')}
+                        className={`pb-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'site-settings'
+                            ? 'border-primary-500 text-primary-600'
+                            : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                            }`}
+                    >
+                        <SettingsIcon className="h-4 w-4 inline mr-2" />
+                        Site Settings
                     </button>
                     <button
                         onClick={() => navigate('/admin/scraping')}
@@ -802,6 +835,101 @@ const AdminDashboard = () => {
                                 <button className="px-10 py-4 bg-primary-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-primary-500/20 active:scale-95">Update Branding</button>
                             </div>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Site Settings Tab */}
+            {activeTab === 'site-settings' && (
+                <div className="max-w-4xl mx-auto">
+                    <div className="bg-white p-8 md:p-12 rounded-[2.5rem] shadow-xl border border-slate-100">
+                        <div className="flex items-center gap-4 mb-10">
+                            <div className="p-3 bg-primary-50 rounded-2xl">
+                                <SettingsIcon className="h-6 w-6 text-primary-600" />
+                            </div>
+                            <div>
+                                <h3 className="text-2xl font-black text-slate-900 italic tracking-tight">Contact & Support Settings</h3>
+                                <p className="text-sm text-slate-500 font-medium">Update the public contact information shown on the platform.</p>
+                            </div>
+                        </div>
+
+                        <form onSubmit={handleUpdateSettings} className="space-y-8">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <div className="space-y-4">
+                                    <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                                        <Mail className="h-3 w-3" /> Public Contact Email
+                                    </label>
+                                    <input
+                                        type="email"
+                                        value={siteSettings.contactEmail}
+                                        onChange={(e) => setSiteSettings({ ...siteSettings, contactEmail: e.target.value })}
+                                        className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl font-bold text-slate-900 focus:border-primary-500 outline-none transition-all"
+                                    />
+                                </div>
+                                <div className="space-y-4">
+                                    <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                                        <Phone className="h-3 w-3" /> Public Contact Phone
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={siteSettings.contactPhone}
+                                        onChange={(e) => setSiteSettings({ ...siteSettings, contactPhone: e.target.value })}
+                                        className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl font-bold text-slate-900 focus:border-primary-500 outline-none transition-all"
+                                    />
+                                </div>
+                                <div className="space-y-4 md:col-span-2">
+                                    <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                                        <MapPin className="h-3 w-3" /> Office Address
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={siteSettings.contactAddress}
+                                        onChange={(e) => setSiteSettings({ ...siteSettings, contactAddress: e.target.value })}
+                                        className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl font-bold text-slate-900 focus:border-primary-500 outline-none transition-all"
+                                    />
+                                </div>
+                                <div className="space-y-4 md:col-span-2">
+                                    <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                                        <Clock className="h-3 w-3" /> Office Hours
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={siteSettings.officeHours}
+                                        onChange={(e) => setSiteSettings({ ...siteSettings, officeHours: e.target.value })}
+                                        className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl font-bold text-slate-900 focus:border-primary-500 outline-none transition-all"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="pt-8 border-t border-slate-100">
+                                <h4 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-6 italic">Social Media Links</h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {['facebook', 'twitter', 'instagram', 'linkedin'].map(platform => (
+                                        <div key={platform} className="space-y-2">
+                                            <label className="text-[10px] font-black uppercase text-slate-400 capitalize">{platform}</label>
+                                            <input
+                                                type="text"
+                                                value={siteSettings.socialLinks[platform]}
+                                                onChange={(e) => setSiteSettings({
+                                                    ...siteSettings,
+                                                    socialLinks: { ...siteSettings.socialLinks, [platform]: e.target.value }
+                                                })}
+                                                className="w-full px-5 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-medium focus:border-primary-500 outline-none transition-all"
+                                                placeholder={`https://${platform}.com/...`}
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <button
+                                type="submit"
+                                disabled={saveLoading}
+                                className="w-full py-5 bg-slate-900 text-white rounded-[2rem] font-black uppercase tracking-[0.2em] text-xs shadow-2xl shadow-slate-900/25 hover:bg-black transition-all active:scale-95 disabled:opacity-50"
+                            >
+                                {saveLoading ? 'Saving Changes...' : 'Save Site Settings'}
+                            </button>
+                        </form>
                     </div>
                 </div>
             )}

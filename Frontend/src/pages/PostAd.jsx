@@ -39,6 +39,8 @@ const PostAd = () => {
     const [priceSuggestion, setPriceSuggestion] = useState(null);
     const [aiTitle, setAiTitle] = useState(null);
     const [spamWarning, setSpamWarning] = useState(null);
+    const [imageQualityIssues, setImageQualityIssues] = useState([]);
+    const [duplicateIssues, setDuplicateIssues] = useState(null);
 
     const [formData, setFormData] = useState({
         type: 'House',
@@ -153,6 +155,49 @@ const PostAd = () => {
         toast.success('Title applied!');
     }, []);
 
+    // AI Image Quality Analysis
+    const runImageQualityCheck = useCallback(async (selectedFiles) => {
+        const imageMetadata = await Promise.all(selectedFiles.map(file => {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => resolve({ width: img.width, height: img.height, sizeKb: Math.round(file.size / 1024) });
+                img.src = URL.createObjectURL(file);
+            });
+        }));
+
+        try {
+            const { data } = await API.post('/ai/image-quality', { images: imageMetadata });
+            setImageQualityIssues(data.issues || []);
+            if (data.verdict === 'poor') {
+                toast('Some images may be rejected due to low quality', { icon: '⚠️' });
+            }
+        } catch (err) {
+            console.error('Image quality check failed', err);
+        }
+    }, []);
+
+    // AI Duplicate Check
+    const runDuplicateCheck = useCallback(async () => {
+        if (!formData.title || !formData.price || !formData.town) return;
+        try {
+            const { data } = await API.post('/ai/duplicate-check', {
+                title: formData.title,
+                description: formData.description,
+                town: formData.town,
+                price: Number(formData.price),
+                beds: Number(formData.beds),
+                baths: Number(formData.baths),
+                type: formData.type
+            });
+            setDuplicateIssues(data.isDuplicate ? data : null);
+            if (data.isDuplicate) {
+                toast.error('Similar listing already exists!', { duration: 5000 });
+            }
+        } catch (err) {
+            console.error('Duplicate check failed', err);
+        }
+    }, [formData]);
+
     const validateStep = (step) => {
         switch (step) {
             case STEPS.TYPE:
@@ -195,6 +240,9 @@ const PostAd = () => {
     const handleNext = () => {
         if (validateStep(currentStep)) {
             setCurrentStep((prev) => prev + 1);
+            if (currentStep === STEPS.CONTACT) {
+                runDuplicateCheck();
+            }
         }
     };
     const handleBack = () => setCurrentStep((prev) => prev - 1);
@@ -227,6 +275,7 @@ const PostAd = () => {
         setFiles((prev) => [...prev, ...selectedFiles]);
         const newPreviews = selectedFiles.map(file => URL.createObjectURL(file));
         setPreviewUrls((prev) => [...prev, ...newPreviews]);
+        runImageQualityCheck(selectedFiles);
     };
 
     const removeImage = (index) => {
@@ -400,6 +449,7 @@ const PostAd = () => {
                             moveImage={moveImage}
                             formData={formData}
                             setFormData={setFormData}
+                            qualityIssues={imageQualityIssues}
                         />
                     )}
                     {currentStep === STEPS.CONTACT && (
@@ -418,6 +468,7 @@ const PostAd = () => {
                             aiTitle={aiTitle}
                             onGenerateTitle={generateSmartTitle}
                             onApplyTitle={applyTitle}
+                            duplicateIssues={duplicateIssues}
                         />
                     )}
                 </div>

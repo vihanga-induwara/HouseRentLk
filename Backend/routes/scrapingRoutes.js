@@ -14,7 +14,7 @@ const {
     // Market Intelligence
     getMarketReport, getPriceComparison, getHotAreas, getDataQuality,
     // Exposure & Conversion
-    getExposureRules, getConversionStats,
+    getExposureRules, updateExposureRules, getConversionStats,
     // Public
     getExternalListings, trackClickThrough,
 } = require('../controllers/scrapingController');
@@ -70,7 +70,9 @@ router.get('/admin/hot-areas', getHotAreas);
 router.get('/admin/data-quality', getDataQuality);
 
 // Exposure & Conversion
-router.get('/admin/exposure-rules', getExposureRules);
+router.route('/admin/exposure-rules')
+    .get(getExposureRules)
+    .put(updateExposureRules);
 router.get('/admin/conversion-stats', getConversionStats);
 
 module.exports = router;

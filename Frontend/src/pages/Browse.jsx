@@ -337,7 +337,11 @@ const Browse = () => {
                             <div>
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 block">Amenities</label>
                                 <div className="space-y-3">
-                                    ].map(({key, label}) => (
+                                    {[
+                                        { key: 'ac', label: 'Air Conditioning' },
+                                        { key: 'parking', label: 'Parking Space' },
+                                        { key: 'wifi', label: 'WiFi / Internet' }
+                                    ].map(({ key, label }) => (
                                     <label key={key} className="flex items-center gap-3 cursor-pointer group">
                                         <div
                                             onClick={() => handleFilterChange(key, !filters[key])}

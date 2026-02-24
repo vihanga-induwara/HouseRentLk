@@ -1,7 +1,7 @@
 import Input from '../Input';
 import { Upload, ChevronLeft, ChevronRight, X, Sparkles } from 'lucide-react';
 
-const StepMedia = ({ files, previewUrls, handleFileChange, removeImage, moveImage, formData, setFormData }) => (
+const StepMedia = ({ files, previewUrls, handleFileChange, removeImage, moveImage, formData, setFormData, qualityIssues = [] }) => (
     <div className="space-y-6">
         <div>
             <h2 className="text-2xl font-bold mb-6 text-slate-900">Media & Tours</h2>
@@ -46,30 +46,44 @@ const StepMedia = ({ files, previewUrls, handleFileChange, removeImage, moveImag
                         {i === 0 && (
                             <div className="absolute bottom-0 inset-x-0 bg-primary-600 text-white text-[10px] font-bold text-center py-0.5">COVER</div>
                         )}
+                        {/* Specific AI issue for this image if any */}
+                        {qualityIssues.find(issue => issue.index === i) && (
+                            <div className="absolute top-1 right-1 p-1 bg-amber-500 rounded-lg shadow-lg">
+                                <Sparkles className="h-3 w-3 text-white" />
+                            </div>
+                        )}
                     </div>
                 ))}
             </div>
 
             {/* AI Image Quality Indicator */}
             {previewUrls.length > 0 && (
-                <div className={`mt-4 p-4 rounded-2xl border flex items-start gap-3 ${previewUrls.length >= 5 ? 'bg-emerald-50 border-emerald-100 dark:bg-emerald-900/20 dark:border-emerald-800' :
-                    previewUrls.length >= 3 ? 'bg-blue-50 border-blue-100 dark:bg-blue-900/20 dark:border-blue-800' :
-                        'bg-amber-50 border-amber-100 dark:bg-amber-900/20 dark:border-amber-800'
+                <div className={`mt-4 p-4 rounded-2xl border flex items-start gap-3 ${qualityIssues.length === 0 && previewUrls.length >= 5 ? 'bg-emerald-50 border-emerald-100 dark:bg-emerald-900/20 dark:border-emerald-800' :
+                    qualityIssues.length > 0 ? 'bg-amber-50 border-amber-100 dark:bg-amber-900/20 dark:border-amber-800' :
+                        'bg-blue-50 border-blue-100 dark:bg-blue-900/20 dark:border-blue-800'
                     }`}>
-                    <Sparkles className={`h-5 w-5 shrink-0 mt-0.5 ${previewUrls.length >= 5 ? 'text-emerald-500' : previewUrls.length >= 3 ? 'text-blue-500' : 'text-amber-500'
+                    <Sparkles className={`h-5 w-5 shrink-0 mt-0.5 ${qualityIssues.length === 0 && previewUrls.length >= 5 ? 'text-emerald-500' : qualityIssues.length > 0 ? 'text-amber-500' : 'text-blue-500'
                         }`} />
                     <div>
-                        <div className="text-[10px] font-black uppercase tracking-widest mb-0.5" style={{ color: previewUrls.length >= 5 ? '#059669' : previewUrls.length >= 3 ? '#2563eb' : '#d97706' }}>
-                            Image Quality: {previewUrls.length >= 5 ? 'Excellent' : previewUrls.length >= 3 ? 'Good' : 'Needs More'}
+                        <div className="text-[10px] font-black uppercase tracking-widest mb-0.5" style={{ color: qualityIssues.length === 0 && previewUrls.length >= 5 ? '#059669' : qualityIssues.length > 0 ? '#d97706' : '#2563eb' }}>
+                            Image Quality: {qualityIssues.length === 0 && previewUrls.length >= 5 ? 'Excellent' : qualityIssues.length > 0 ? 'Action Required' : 'Good'}
                         </div>
-                        <p className="text-xs text-slate-600 dark:text-slate-300 font-bold">
-                            {previewUrls.length >= 5
-                                ? `Great! ${previewUrls.length} photos uploaded. Listings with 5+ photos get 3× more inquiries.`
-                                : previewUrls.length >= 3
-                                    ? `Good start with ${previewUrls.length} photos. Adding 2 more will boost visibility significantly.`
-                                    : `Only ${previewUrls.length} photo${previewUrls.length > 1 ? 's' : ''}. We recommend at least 5 photos for best results.`
-                            }
-                        </p>
+                        {qualityIssues.length > 0 ? (
+                            <div className="space-y-1">
+                                {qualityIssues.map((issue, i) => (
+                                    <p key={i} className="text-xs text-amber-700 dark:text-amber-400 font-bold">
+                                        • Image #{issue.index + 1}: {issue.message}
+                                    </p>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="text-xs text-slate-600 dark:text-slate-300 font-bold">
+                                {previewUrls.length >= 5
+                                    ? `Great! ${previewUrls.length} high-quality photos uploaded.`
+                                    : `Good start. Adding ${5 - previewUrls.length} more photos will boost your listing visibility.`
+                                }
+                            </p>
+                        )}
                     </div>
                 </div>
             )}

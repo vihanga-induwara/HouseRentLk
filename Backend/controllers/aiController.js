@@ -407,6 +407,25 @@ const getAreaSafety = asyncHandler(async (req, res) => {
     res.status(200).json(result);
 });
 
+// @desc    Get rent budget planning data (affordability, rent vs buy, deposit, utilities)
+// @route   POST /api/ai/budget-plan
+// @access  Public
+const getRentBudgetPlan = asyncHandler(async (req, res) => {
+    const { action, ...data } = req.body;
+
+    if (!action) {
+        res.status(400);
+        throw new Error('Action is required');
+    }
+
+    const result = await aiService.executeScript('budget_planner.py', {
+        action,
+        ...data
+    });
+
+    res.status(200).json(result);
+});
+
 module.exports = {
     getSuggestedPrice,
     generateTitle,
@@ -421,5 +440,6 @@ module.exports = {
     checkSpam,
     compareListings,
     getDemandHeatmap,
-    getAreaSafety
+    getAreaSafety,
+    getRentBudgetPlan
 };

@@ -40,8 +40,8 @@ const AdminScrapingSettings = () => {
             ]);
             setExposureRules(exposureRes.data);
             setConversionStats(conversionRes.data);
-            if (exposureRes.data?.rules) {
-                setSettings(prev => ({ ...prev, ...exposureRes.data.rules }));
+            if (exposureRes.data) {
+                setSettings(prev => ({ ...prev, ...exposureRes.data }));
             }
         } catch (err) {
             console.error(err);
@@ -51,7 +51,13 @@ const AdminScrapingSettings = () => {
     };
 
     const handleSave = async () => {
-        toast.success('Settings saved (stored locally — backend rule engine pending)');
+        try {
+            await API.put('/scraping/admin/exposure-rules', settings);
+            toast.success('Settings saved to backend');
+        } catch (err) {
+            console.error(err);
+            toast.error('Failed to save settings');
+        }
     };
 
     const Toggle = ({ value, onChange, label, description }) => (

@@ -14,7 +14,8 @@ const {
     checkSpam,
     compareListings,
     getDemandHeatmap,
-    getAreaSafety
+    getAreaSafety,
+    getRentBudgetPlan
 } = require('../controllers/aiController');
 const { protect } = require('../middleware/authMiddleware');
 
@@ -35,6 +36,7 @@ router.post('/nlp-search', nlpSearch);
 router.post('/compare', compareListings);
 router.get('/demand-heatmap', getDemandHeatmap);
 router.get('/safety-score/:listingId', getAreaSafety);
+router.post('/budget-plan', getRentBudgetPlan);
 
 // Private endpoints
 router.post('/image-quality', protect, analyzeImageQuality);

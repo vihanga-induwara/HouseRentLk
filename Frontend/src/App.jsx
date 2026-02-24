@@ -21,7 +21,13 @@ import AdminMarketReport from './pages/AdminMarketReport';
 import AdminScrapingSettings from './pages/AdminScrapingSettings';
 import Brokers from './pages/Brokers';
 import BrokerProfile from './pages/BrokerProfile';
-import LoanCalculatorPage from './pages/LoanCalculatorPage';
+import RentBudgetPlannerPage from './pages/RentBudgetPlannerPage';
+import FAQ from './pages/FAQ';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import TermsOfService from './pages/TermsOfService';
+import SafetyTips from './pages/SafetyTips';
+import AboutUs from './pages/AboutUs';
+import Contact from './pages/Contact';
 import NotFound from './pages/NotFound';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -45,7 +51,13 @@ function App() {
               <Route path="/register" element={<Register />} />
               <Route path="/brokers" element={<Brokers />} />
               <Route path="/brokers/:id" element={<BrokerProfile />} />
-              <Route path="/loan-calculator" element={<LoanCalculatorPage />} />
+              <Route path="/rent-planner" element={<RentBudgetPlannerPage />} />
+              <Route path="/faq" element={<FAQ />} />
+              <Route path="/privacy" element={<PrivacyPolicy />} />
+              <Route path="/terms" element={<TermsOfService />} />
+              <Route path="/safety" element={<SafetyTips />} />
+              <Route path="/about" element={<AboutUs />} />
+              <Route path="/contact" element={<Contact />} />
 
               {/* Protected Routes */}
               <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
