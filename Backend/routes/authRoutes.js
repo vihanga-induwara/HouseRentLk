@@ -5,12 +5,16 @@ const {
     loginUser,
     getMe,
     updateProfile,
-    checkEmail
+    checkEmail,
+    logoutUser
 } = require('../controllers/authController');
 const { protect } = require('../middleware/authMiddleware');
+const { validate } = require('../middleware/validateMiddleware');
+const { registerSchema, loginSchema } = require('../validations/authValidation');
 
-router.post('/register', registerUser);
-router.post('/login', loginUser);
+router.post('/register', validate(registerSchema), registerUser);
+router.post('/login', validate(loginSchema), loginUser);
+router.post('/logout', logoutUser);
 router.get('/me', protect, getMe);
 router.put('/profile', protect, updateProfile);
 router.get('/check-email', checkEmail);

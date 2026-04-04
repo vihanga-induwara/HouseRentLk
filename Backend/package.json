@@ -31,7 +31,9 @@
     "multer-storage-cloudinary": "^4.0.0",
     "twilio": "^5.12.2",
     "ua-parser-js": "^2.0.9",
-    "xss-clean": "^0.1.4"
+    "xss": "^1.0.15",
+    "xss-clean": "^0.1.4",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "concurrently": "^9.2.1",

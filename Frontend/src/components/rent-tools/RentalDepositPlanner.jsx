@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
-import { Wallet, Calendar, Shield, CreditCard, PieChart } from 'lucide-react';
+import { Wallet, Calendar, Shield, CreditCard, PieChart, Save } from 'lucide-react';
 import API from '../../utils/api';
+import { toast } from 'react-hot-toast';
+import { useAuth } from '../../context/AuthContext';
 
 const RentalDepositPlanner = ({ defaultRent = 50000 }) => {
+    const { user } = useAuth();
     const [rent, setRent] = useState(defaultRent);
     const [months, setMonths] = useState(6);
     const [result, setResult] = useState(null);
@@ -17,8 +20,28 @@ const RentalDepositPlanner = ({ defaultRent = 50000 }) => {
                 months: Number(months)
             });
             setResult(data);
+            toast.success('Deposit calculated successfully!');
         } catch (error) {
             console.error('Deposit calculation failed', error);
+            toast.error(error.response?.data?.message || 'Deposit calculation failed');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSavePlan = async () => {
+        if (!user) return;
+        setLoading(true);
+        try {
+            await API.post('/budget-plans', {
+                title: 'Rental Deposit Plan',
+                calculationType: 'deposit',
+                inputs: { rent, months },
+                results: result
+            });
+            toast.success('Budget plan saved to your profile!');
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Failed to save budget plan');
         } finally {
             setLoading(false);
         }
@@ -112,6 +135,15 @@ const RentalDepositPlanner = ({ defaultRent = 50000 }) => {
                             <span className="text-sm font-black text-slate-900 dark:text-white italic">{formatLKR(result.movingEstimate)}</span>
                         </div>
                     </div>
+
+                    {user && (
+                        <button
+                            onClick={handleSavePlan}
+                            className="w-full mt-4 py-3 border-2 border-emerald-500/20 text-emerald-600 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all hover:bg-emerald-50 flex items-center justify-center gap-2"
+                        >
+                            <Save className="h-4 w-4" /> Save This Plan to Profile
+                        </button>
+                    )}
                 </div>
             )}
         </div>

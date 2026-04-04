@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
-import { Home, Repeat, Info, ChevronRight } from 'lucide-react';
+import { Home, Repeat, Info, ChevronRight, Save } from 'lucide-react';
 import API from '../../utils/api';
+import { toast } from 'react-hot-toast';
+import { useAuth } from '../../context/AuthContext';
 
 const RentVsBuyComparison = () => {
+    const { user } = useAuth();
     const [rent, setRent] = useState(60000);
     const [value, setValue] = useState(15000000);
     const [result, setResult] = useState(null);
@@ -17,8 +20,28 @@ const RentVsBuyComparison = () => {
                 value: Number(value)
             });
             setResult(data);
+            toast.success('Comparison completed successfully!');
         } catch (error) {
             console.error('Comparison failed', error);
+            toast.error(error.response?.data?.message || 'Comparison failed');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSavePlan = async () => {
+        if (!user) return;
+        setLoading(true);
+        try {
+            await API.post('/budget-plans', {
+                title: 'Rent vs Buy Option',
+                calculationType: 'comparison',
+                inputs: { rent, value },
+                results: result
+            });
+            toast.success('Budget plan saved to your profile!');
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Failed to save budget plan');
         } finally {
             setLoading(false);
         }
@@ -120,6 +143,15 @@ const RentVsBuyComparison = () => {
                             <span>Analysis considers 14.5% interest and 80% LTV loan.</span>
                         </div>
                     </div>
+
+                    {user && (
+                        <button
+                            onClick={handleSavePlan}
+                            className="w-full mt-4 py-3 border-2 border-indigo-500/20 text-indigo-600 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all hover:bg-indigo-50 flex items-center justify-center gap-2"
+                        >
+                            <Save className="h-4 w-4" /> Save This Plan to Profile
+                        </button>
+                    )}
                 </div>
             )}
         </div>

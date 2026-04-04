@@ -22,6 +22,17 @@ class AiService {
         return new Promise((resolve, reject) => {
             let scriptPath;
 
+            // FUTURE: When FastAPI inference server is running, we can route calls via HTTP instead
+            // const INFERENCE_SERVER_URL = process.env.AI_INFERENCE_SERVER_URL;
+            // if (INFERENCE_SERVER_URL) {
+            //     try {
+            //         const { data } = await axios.post(`${INFERENCE_SERVER_URL}/api/v1/run/${scriptName}`, inputData);
+            //         return resolve(data);
+            //     } catch (err) {
+            //         return reject(new Error('Inference server error: ' + err.message));
+            //     }
+            // }
+
             // Determine script location
             if (customPath) {
                 scriptPath = path.join(customPath, scriptName);

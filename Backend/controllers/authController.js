@@ -50,6 +50,14 @@ const registerUser = asyncHandler(async (req, res) => {
     });
 
     if (user) {
+        const token = generateToken(user._id);
+        res.cookie('jwt', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
+        });
+
         res.status(201).json({
             _id: user.id,
             name: user.name,
@@ -57,8 +65,6 @@ const registerUser = asyncHandler(async (req, res) => {
             role: user.role,
             phone: user.phone,
             preferences: user.preferences,
-
-            token: generateToken(user._id),
         });
     } else {
         res.status(400);
@@ -92,6 +98,14 @@ const loginUser = asyncHandler(async (req, res) => {
             loginAt: Date.now()
         });
 
+        const token = generateToken(user._id);
+        res.cookie('jwt', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
+        });
+
         res.json({
             _id: user.id,
             name: user.name,
@@ -99,8 +113,6 @@ const loginUser = asyncHandler(async (req, res) => {
             role: user.role,
             avatar: user.avatar,
             preferences: user.preferences,
-
-            token: generateToken(user._id),
         });
     } else {
         res.status(400);
@@ -140,6 +152,14 @@ const updateProfile = asyncHandler(async (req, res) => {
 
         const updatedUser = await user.save();
 
+        const token = generateToken(updatedUser._id);
+        res.cookie('jwt', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
+        });
+
         res.json({
             _id: updatedUser._id,
             name: updatedUser.name,
@@ -149,7 +169,6 @@ const updateProfile = asyncHandler(async (req, res) => {
             bio: updatedUser.bio,
             avatar: updatedUser.avatar,
             preferences: updatedUser.preferences,
-            token: generateToken(updatedUser._id),
         });
     } else {
         res.status(404);
@@ -189,10 +208,22 @@ const generateToken = (id) => {
     });
 };
 
+// @desc    Logout user / clear cookie
+// @route   POST /api/auth/logout
+// @access  Public
+const logoutUser = asyncHandler(async (req, res) => {
+    res.cookie('jwt', '', {
+        httpOnly: true,
+        expires: new Date(0),
+    });
+    res.status(200).json({ message: 'Logged out successfully' });
+});
+
 module.exports = {
     registerUser,
     loginUser,
     getMe,
     updateProfile,
-    checkEmail
+    checkEmail,
+    logoutUser
 };

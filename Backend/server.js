@@ -25,7 +25,8 @@ const app = express();
 
 // Security Middlewares
 app.use(helmet()); // Secure HTTP headers
-// express-mongo-sanitize and xss-clean are removed due to Express 5 / Node 24 incompatibility causing global res.setHeader crashes.
+const { securityMiddleware } = require('./middleware/securityMiddleware');
+app.use(securityMiddleware); // Custom NoSQL and XSS sanitization
 
 // Logging middleware
 if (process.env.NODE_ENV !== 'test') {
@@ -34,7 +35,23 @@ if (process.env.NODE_ENV !== 'test') {
 
 // Middleware
 app.use(express.json());
-app.use(cors());
+app.use((req, res, next) => {
+    const { cookie } = req.headers;
+    req.cookies = {};
+    if (cookie) {
+        cookie.split(';').forEach(c => {
+            const parts = c.split('=');
+            if (parts.length >= 2) {
+                req.cookies[parts.shift().trim()] = decodeURIComponent(parts.join('='));
+            }
+        });
+    }
+    next();
+});
+app.use(cors({
+    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    credentials: true
+}));
 
 // Rate Limiting
 const rateLimit = require('express-rate-limit');
@@ -56,6 +73,14 @@ const authLimiter = rateLimit({
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);
 app.use('/api/inquiries', authLimiter); // strict on inquiries too
+
+// AI Limiter
+const aiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 20, // limit each IP to 20 AI requests per 15 mins
+    message: 'Too many AI requests from this IP, please try again after 15 minutes'
+});
+app.use('/api/ai', aiLimiter);
 
 // Routes
 app.use('/api/auth', require('./routes/authRoutes'));

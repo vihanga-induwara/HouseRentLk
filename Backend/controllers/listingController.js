@@ -187,9 +187,15 @@ const updateListing = asyncHandler(async (req, res) => {
         throw new Error('Not authorized');
     }
 
+    // Prevent mass assignment of sensitive fields
+    let updateData = { ...req.body };
+    const protectedFields = ['owner', 'views', 'expiresAt', 'renewedAt', 'aiDescription', 'createdAt', 'updatedAt', 'autoTags', 'nearbyPlaces', '_id'];
+    protectedFields.forEach(field => delete updateData[field]);
+
     // If owner updates, reset status to pending (unless admin)
-    let updateData = req.body;
     if (req.user.role !== 'admin') {
+        delete updateData.status; // Prevents owner from keeping status 'approved'
+        delete updateData.isFeatured; // Prevents owner from featuring their own ad without paying
         updateData.status = 'pending';
     }
 

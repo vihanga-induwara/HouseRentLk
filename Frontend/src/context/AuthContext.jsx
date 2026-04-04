@@ -16,16 +16,14 @@ export const AuthProvider = ({ children }) => {
         if (storedUser) {
             const parsedUser = JSON.parse(storedUser);
             setUser(parsedUser);
-            fetchFavorites(parsedUser.token);
+            fetchFavorites();
         }
         setLoading(false);
     }, []);
 
-    const fetchFavorites = async (token) => {
+    const fetchFavorites = async () => {
         try {
-            // We need to make sure we use the token for this request even if it's not set in interceptor yet (init load)
-            const config = { headers: { Authorization: `Bearer ${token}` } };
-            const { data } = await API.get('/favorites', config);
+            const { data } = await API.get('/favorites');
             // Assuming data is array of favorite objects populated with listingId. 
             // We just need IDs for checking status usually. 
             // But if we want to display them, we keep full objects or map to IDs.
@@ -71,7 +69,7 @@ export const AuthProvider = ({ children }) => {
             const { data } = await API.post('/auth/login', { email, password });
             setUser(data);
             localStorage.setItem('user', JSON.stringify(data));
-            fetchFavorites(data.token);
+            fetchFavorites();
             toast.success('Login successful!');
             return { success: true, user: data };
         } catch (error) {
@@ -102,7 +100,12 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('user', JSON.stringify(userData));
     };
 
-    const logout = () => {
+    const logout = async () => {
+        try {
+            await API.post('/auth/logout');
+        } catch (e) {
+            console.error("Logout API error", e);
+        }
         setUser(null);
         localStorage.removeItem('user');
         toast.success('Logged out successfully');

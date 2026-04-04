@@ -8,6 +8,7 @@ const RentAffordabilityCalculator = () => {
     const { user } = useAuth();
     const [income, setIncome] = useState(150000);
     const [expenses, setExpenses] = useState(50000);
+    const [town, setTown] = useState('');
     const [result, setResult] = useState(null);
     const [loading, setLoading] = useState(false);
 
@@ -17,11 +18,14 @@ const RentAffordabilityCalculator = () => {
             const { data } = await API.post('/ai/budget-plan', {
                 action: 'affordability',
                 income: Number(income),
-                expenses: Number(expenses)
+                expenses: Number(expenses),
+                town: town
             });
             setResult(data);
+            toast.success('Affordability calculated successfully!');
         } catch (error) {
             console.error('Affordability calculation failed', error);
+            toast.error(error.response?.data?.message || 'Affordability calculation failed');
         } finally {
             setLoading(false);
         }
@@ -31,15 +35,15 @@ const RentAffordabilityCalculator = () => {
         if (!user) return;
         setLoading(true);
         try {
-            await API.post('/user/budget-plans', {
-                type: 'affordability',
-                income,
-                expenses,
-                result
+            await API.post('/budget-plans', {
+                title: 'Rent Affordability',
+                calculationType: 'affordability',
+                inputs: { income, expenses, town },
+                results: result
             });
             toast.success('Budget plan saved to your profile!');
         } catch (error) {
-            toast.error('Failed to save budget plan');
+            toast.error(error.response?.data?.message || 'Failed to save budget plan');
         } finally {
             setLoading(false);
         }
@@ -79,6 +83,17 @@ const RentAffordabilityCalculator = () => {
                 </div>
 
                 <div>
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Town/City (Optional)</label>
+                    <input
+                        type="text"
+                        value={town}
+                        onChange={(e) => setTown(e.target.value)}
+                        className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-900 rounded-2xl border-2 border-slate-100 dark:border-slate-700 focus:border-primary-500 outline-none transition-all font-bold text-slate-900 dark:text-white"
+                        placeholder="e.g. Colombo"
+                    />
+                </div>
+
+                <div>
                     <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Other Monthly Expenses (LKR)</label>
                     <input
                         type="number"
@@ -102,13 +117,13 @@ const RentAffordabilityCalculator = () => {
                 <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
                     <div className="p-6 bg-slate-900 dark:bg-slate-700 rounded-[2rem] text-center text-white relative overflow-hidden group">
                         <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full -mr-8 -mt-8"></div>
-                        <div className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 mb-2">Recommended Rent (30%)</div>
+                        <div className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 mb-2">Recommended Rent ({result.recommendedRatio || 30}%)</div>
                         <div className="text-4xl font-black italic tracking-tighter text-primary-400">{formatLKR(result.recommendedRent)}</div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                         <div className="p-5 bg-slate-50 dark:bg-slate-900/50 rounded-[1.5rem] border border-slate-100 dark:border-slate-700">
-                            <div className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">Max Safe Limit (40%)</div>
+                            <div className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">Max Safe Limit ({result.maxSafeRatio || 40}%)</div>
                             <div className="text-lg font-black text-slate-900 dark:text-white italic">{formatLKR(result.maxSafeLimit)}</div>
                         </div>
                         <div className="p-5 bg-slate-50 dark:bg-slate-900/50 rounded-[1.5rem] border border-slate-100 dark:border-slate-700">

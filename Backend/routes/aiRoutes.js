@@ -18,6 +18,16 @@ const {
     getRentBudgetPlan
 } = require('../controllers/aiController');
 const { protect } = require('../middleware/authMiddleware');
+const { validate } = require('../middleware/validateMiddleware');
+const {
+    budgetPlanSchema,
+    generateTitleSchema,
+    autoTagSchema,
+    nlpSearchSchema,
+    imageQualitySchema,
+    checkSpamSchema,
+    compareListingsSchema
+} = require('../validations/aiValidation');
 
 // ---- Phase 1 ----
 // Public endpoints
@@ -26,21 +36,21 @@ router.get('/price-fairness/:listingId', getPriceFairness);
 router.get('/sentiment/:listingId', getReviewSentiment);
 
 // Private endpoints (require login)
-router.post('/generate-title', protect, generateTitle);
-router.post('/auto-tag', protect, autoTagListing);
+router.post('/generate-title', protect, validate(generateTitleSchema), generateTitle);
+router.post('/auto-tag', protect, validate(autoTagSchema), autoTagListing);
 router.get('/insights/:listingId', protect, getListingInsights);
 
 // ---- Phase 2 ----
 // Public endpoints
-router.post('/nlp-search', nlpSearch);
-router.post('/compare', compareListings);
+router.post('/nlp-search', validate(nlpSearchSchema), nlpSearch);
+router.post('/compare', validate(compareListingsSchema), compareListings);
 router.get('/demand-heatmap', getDemandHeatmap);
 router.get('/safety-score/:listingId', getAreaSafety);
-router.post('/budget-plan', getRentBudgetPlan);
+router.post('/budget-plan', validate(budgetPlanSchema), getRentBudgetPlan);
 
 // Private endpoints
-router.post('/image-quality', protect, analyzeImageQuality);
+router.post('/image-quality', protect, validate(imageQualitySchema), analyzeImageQuality);
 router.post('/duplicate-check', protect, checkDuplicates);
-router.post('/spam-check', protect, checkSpam);
+router.post('/spam-check', protect, validate(checkSpamSchema), checkSpam);
 
 module.exports = router;

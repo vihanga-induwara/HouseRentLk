@@ -1,11 +1,14 @@
 import sys
 import json
 
-def calculate_affordability(income, expenses):
-    # 30% rule (Recommended)
-    recommended_rent = income * 0.30
-    # 40% rule (Max limit)
-    max_safe_rent = income * 0.40
+def calculate_affordability(income, expenses, town=""):
+    is_colombo = town and "colombo" in town.lower()
+    
+    rec_ratio = 0.35 if is_colombo else 0.30
+    max_ratio = 0.45 if is_colombo else 0.40
+    
+    recommended_rent = income * rec_ratio
+    max_safe_rent = income * max_ratio
     
     remaining = income - expenses - recommended_rent
     
@@ -13,6 +16,8 @@ def calculate_affordability(income, expenses):
         "recommendedRent": round(recommended_rent),
         "maxSafeLimit": round(max_safe_rent),
         "remainingAfterExpenses": round(remaining),
+        "recommendedRatio": round(rec_ratio * 100),
+        "maxSafeRatio": round(max_ratio * 100),
         "status": "Healthy" if remaining > 0 else "Tight"
     }
 
@@ -84,7 +89,7 @@ if __name__ == "__main__":
         
         result = {}
         if action == "affordability":
-            result = calculate_affordability(data.get("income", 0), data.get("expenses", 0))
+            result = calculate_affordability(data.get("income", 0), data.get("expenses", 0), data.get("town", ""))
         elif action == "rent_vs_buy":
             result = calculate_rent_vs_buy(data.get("rent", 0), data.get("value", 0))
         elif action == "deposit":

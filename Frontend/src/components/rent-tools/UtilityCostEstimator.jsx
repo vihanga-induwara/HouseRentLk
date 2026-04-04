@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
-import { Lightbulb, Droplets, MapPin, Building2, Sparkles } from 'lucide-react';
+import { Lightbulb, Droplets, MapPin, Building2, Sparkles, Save } from 'lucide-react';
 import API from '../../utils/api';
+import { toast } from 'react-hot-toast';
+import { useAuth } from '../../context/AuthContext';
 
 const UtilityCostEstimator = () => {
+    const { user } = useAuth();
     const [town, setTown] = useState('Colombo');
     const [type, setType] = useState('Apartment');
     const [result, setResult] = useState(null);
@@ -17,8 +20,28 @@ const UtilityCostEstimator = () => {
                 type
             });
             setResult(data);
+            toast.success('Utility costs estimated successfully!');
         } catch (error) {
             console.error('Utility estimation failed', error);
+            toast.error(error.response?.data?.message || 'Utility estimation failed');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSavePlan = async () => {
+        if (!user) return;
+        setLoading(true);
+        try {
+            await API.post('/budget-plans', {
+                title: 'Utility Cost Estimate',
+                calculationType: 'utilities',
+                inputs: { town, type },
+                results: result
+            });
+            toast.success('Budget plan saved to your profile!');
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Failed to save budget plan');
         } finally {
             setLoading(false);
         }
@@ -106,6 +129,15 @@ const UtilityCostEstimator = () => {
                     <p className="mt-4 text-[10px] text-center text-slate-400 font-medium italic">
                         Estimates based on average consumption for a 2-3 person household in {town}.
                     </p>
+
+                    {user && (
+                        <button
+                            onClick={handleSavePlan}
+                            className="w-full mt-4 py-3 border-2 border-amber-500/20 text-amber-600 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all hover:bg-amber-50 flex items-center justify-center gap-2"
+                        >
+                            <Save className="h-4 w-4" /> Save This Plan to Profile
+                        </button>
+                    )}
                 </div>
             )}
         </div>
