@@ -5,27 +5,17 @@ const settingsSchema = mongoose.Schema({
         type: String,
         default: 'HouseRentLk'
     },
-    contactEmail: {
-        type: String,
-        default: 'info@houserent.lk'
-    },
-    contactPhone: {
-        type: String,
-        default: '+94 77 123 4567'
-    },
-    contactAddress: {
-        type: String,
-        default: '123 Galle Road, Colombo 03, Sri Lanka'
-    },
-    officeHours: {
-        type: String,
-        default: 'Mon - Fri: 9:00 AM - 6:00 PM'
-    },
+    // Contact details and social links are empty until an admin sets real values
+    // (the site hides anything that is not configured)
+    contactEmail: { type: String, default: '' },
+    contactPhone: { type: String, default: '' },
+    contactAddress: { type: String, default: '' },
+    officeHours: { type: String, default: '' },
     socialLinks: {
-        facebook: { type: String, default: 'https://facebook.com/houserentlk' },
-        twitter: { type: String, default: 'https://twitter.com/houserentlk' },
-        instagram: { type: String, default: 'https://instagram.com/houserentlk' },
-        linkedin: { type: String, default: 'https://linkedin.com/company/houserentlk' }
+        facebook: { type: String, default: '' },
+        twitter: { type: String, default: '' },
+        instagram: { type: String, default: '' },
+        linkedin: { type: String, default: '' }
     },
     scrapingRules: {
         maxExternalPercent: { type: Number, default: 20 },

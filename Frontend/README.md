@@ -1,37 +1,11 @@
 # HouseRentLk Frontend
 
-This is the frontend application for HouseRentLk, built with React, Vite, and Tailwind CSS.
+React 19 + Vite + Tailwind single-page app. See the [root README](../README.md) for the full
+setup and deployment guide.
 
-## Prerequisites
-- Node.js (v18 or higher)
-- npm
-
-## Getting Started
-
-1.  **Install Dependencies**
-    ```bash
-    npm install
-    ```
-
-2.  **Run Development Server**
-    ```bash
-    npm run dev
-    ```
-    Open [http://localhost:5173](http://localhost:5173) to view it in the browser.
-
-3.  **Build for Production**
-    ```bash
-    npm run build
-    ```
-
-## Project Structure
-- `src/components`: Reusable UI components (Navbar, Button, ListingCard, etc.)
-- `src/pages`: Page components (Home, Browse, ListingDetail, Login, Register)
-- `src/assets`: Static assets
-- `src/App.jsx`: Main application component with routing
-
-## Technologies
-- React 19
-- Tailwind CSS v4
-- React Router DOM v7
-- Lucide React (Icons)
+```bash
+cp .env.example .env.local   # VITE_API_URL=http://localhost:5000/api
+npm install
+npm run dev                  # http://localhost:5173
+npm run lint && npx vitest run && npm run build
+```

@@ -18,9 +18,10 @@ const scrapingSourceSchema = mongoose.Schema(
             type: String,
             required: [true, 'Please add the source URL'],
         },
+        // New sources start disabled: an admin enables each one after checking its terms of use
         isEnabled: {
             type: Boolean,
-            default: true,
+            default: false,
         },
         scraperScript: {
             type: String,
