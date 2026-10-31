@@ -165,7 +165,7 @@ const getMyListings = asyncHandler(async (req, res) => {
 // Helper to generate AI content
 const generateAIContent = async (listingData) => {
     try {
-        return await aiService.executeScript('ai_service.py', listingData);
+        return await aiService.executeScript('description_generator.py', listingData);
     } catch (error) {
         console.error("AI Generation failed:", error.message);
         return null; // Graceful fallback

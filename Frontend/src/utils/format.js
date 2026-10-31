@@ -10,14 +10,6 @@ export const formatCurrency = (amount) => {
     }).format(amount);
 };
 
-export const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-GB', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-    });
-};
-
 export const formatFullDate = (dateString) => {
     if (!dateString) return '';
     const date = new Date(dateString);

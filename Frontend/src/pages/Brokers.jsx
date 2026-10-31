@@ -88,7 +88,7 @@ const Brokers = () => {
                                 </div>
 
                                 <p className="text-slate-500 dark:text-slate-400 text-sm line-clamp-2 mb-8 font-medium italic">
-                                    "{broker.bio || 'Professional real estate consultant specializing in residential rentals across Colombo and Gampaha districts.'}"
+                                    {broker.bio ? `"${broker.bio}"` : 'No bio yet.'}
                                 </p>
 
                                 <div className="flex items-center justify-between pt-6 border-t border-slate-50 dark:border-slate-700">

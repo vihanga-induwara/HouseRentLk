@@ -16,7 +16,6 @@ const MAX_OUTPUT_BYTES = 10 * 1024 * 1024;
 class AiService {
     constructor() {
         this.aiUtilsPath = path.join(__dirname, '../utils/ai');
-        this.rootPath = path.join(__dirname, '../'); // For ai_service.py in root
         this.running = 0;
         this.queue = [];
     }
@@ -38,7 +37,6 @@ class AiService {
 
     resolveScriptPath(scriptName, customPath) {
         if (customPath) return path.join(customPath, scriptName);
-        if (scriptName === 'ai_service.py') return path.join(this.rootPath, scriptName);
         return path.join(this.aiUtilsPath, scriptName);
     }
 

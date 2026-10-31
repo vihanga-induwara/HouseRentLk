@@ -94,24 +94,6 @@ const getPlatformHealth = asyncHandler(async (req, res) => {
     });
 });
 
-// @desc    Get activity summary
-// @route   GET /api/admin/activity-summary
-// @access  Private (Admin)
-const getActivitySummary = asyncHandler(async (req, res) => {
-    const [totalListings, pendingListings, approvedListings] = await Promise.all([
-        Listing.countDocuments(),
-        Listing.countDocuments({ status: 'pending' }),
-        Listing.countDocuments({ status: 'approved' }),
-    ]);
-
-    res.json({
-        total: totalListings,
-        pending: pendingListings,
-        activeRate: totalListings > 0 ? ((approvedListings / totalListings) * 100).toFixed(1) + '%' : '0%'
-    });
-});
-
 module.exports = {
     getPlatformHealth,
-    getActivitySummary
 };

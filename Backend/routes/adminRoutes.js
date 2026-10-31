@@ -14,10 +14,7 @@ const {
     getReports,
     updateReportStatus
 } = require('../controllers/adminController');
-const {
-    getPlatformHealth,
-    getActivitySummary
-} = require('../controllers/adminAnalyticsController');
+const { getPlatformHealth } = require('../controllers/adminAnalyticsController');
 const { protect, authorize } = require('../middleware/authMiddleware');
 const { validate } = require('../middleware/validateMiddleware');
 const {
@@ -45,7 +42,6 @@ router.put('/users/:id/status', validate(adminUserStatusSchema), updateUserStatu
 // Dashboard Stats
 router.get('/stats', getStats);
 router.get('/health-analytics', getPlatformHealth);
-router.get('/activity-summary', getActivitySummary);
 
 // Report Management
 router.get('/reports', getReports);
