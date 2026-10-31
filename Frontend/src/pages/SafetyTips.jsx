@@ -11,7 +11,7 @@ const SafetyTips = () => {
             try {
                 const { data } = await API.get('/pages/safety-tips');
                 setPage(data);
-            } catch (error) {
+            } catch {
                 console.log("No dynamic safety tips found, using defaults");
             } finally {
                 setIsLoading(false);

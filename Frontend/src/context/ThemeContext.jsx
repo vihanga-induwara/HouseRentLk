@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+/* eslint-disable react-refresh/only-export-components -- context file exports its hook alongside the provider */
+import { createContext, useContext, useState, useEffect } from 'react';
 
 const ThemeContext = createContext();
 

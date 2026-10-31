@@ -1,4 +1,4 @@
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { vi, describe, it, expect } from 'vitest';
 import ListingDetail from '../pages/ListingDetail';
 import { BrowserRouter } from 'react-router-dom';

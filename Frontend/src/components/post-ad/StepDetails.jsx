@@ -1,7 +1,7 @@
 import Input from '../Input';
 import { Sparkles, Loader2 } from 'lucide-react';
 
-const StepDetails = ({ formData, handleChange, priceSuggestion, onFetchPriceSuggestion, onApplyPrice }) => (
+const StepDetails = ({ formData, handleChange, user, priceSuggestion, onFetchPriceSuggestion, onApplyPrice }) => (
     <div className="space-y-4">
         <h2 className="text-2xl font-bold mb-6 text-slate-900">Rental Details</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -1,7 +1,7 @@
 import Input from '../Input';
 import { Upload, ChevronLeft, ChevronRight, X, Sparkles } from 'lucide-react';
 
-const StepMedia = ({ files, previewUrls, handleFileChange, removeImage, moveImage, formData, setFormData, qualityIssues = [] }) => (
+const StepMedia = ({ previewUrls, handleFileChange, removeImage, moveImage, formData, setFormData, qualityIssues = [] }) => (
     <div className="space-y-6">
         <div>
             <h2 className="text-2xl font-bold mb-6 text-slate-900">Media & Tours</h2>

@@ -33,7 +33,9 @@ const Home = () => {
         try {
             const viewed = JSON.parse(localStorage.getItem('recentlyViewed') || '[]');
             setRecentlyViewed(viewed.slice(0, 4));
-        } catch (e) { }
+        } catch {
+            localStorage.removeItem('recentlyViewed'); // corrupted entry
+        }
     }, []);
 
     const handleSearch = () => {

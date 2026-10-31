@@ -11,7 +11,7 @@ const PrivacyPolicy = () => {
             try {
                 const { data } = await API.get('/pages/privacy-policy');
                 setPage(data);
-            } catch (error) {
+            } catch {
                 console.log("No dynamic privacy policy found, using defaults");
             } finally {
                 setIsLoading(false);

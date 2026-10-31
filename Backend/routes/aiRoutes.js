@@ -26,6 +26,7 @@ const {
     nlpSearchSchema,
     imageQualitySchema,
     checkSpamSchema,
+    duplicateCheckSchema,
     compareListingsSchema
 } = require('../validations/aiValidation');
 
@@ -50,7 +51,7 @@ router.post('/budget-plan', validate(budgetPlanSchema), getRentBudgetPlan);
 
 // Private endpoints
 router.post('/image-quality', protect, validate(imageQualitySchema), analyzeImageQuality);
-router.post('/duplicate-check', protect, checkDuplicates);
+router.post('/duplicate-check', protect, validate(duplicateCheckSchema), checkDuplicates);
 router.post('/spam-check', protect, validate(checkSpamSchema), checkSpam);
 
 module.exports = router;

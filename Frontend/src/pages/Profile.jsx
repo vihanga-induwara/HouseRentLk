@@ -32,6 +32,8 @@ const Profile = () => {
     });
 
     const [verifying, setVerifying] = useState(false);
+    const [nicFiles, setNicFiles] = useState([]);
+    const [nicPreviews, setNicPreviews] = useState([]);
     const [followers, setFollowers] = useState([]);
     const [fetchingFollowers, setFetchingFollowers] = useState(false);
 
@@ -104,7 +106,7 @@ const Profile = () => {
             await API.put('/auth/profile', { avatar: imageUrls[0] });
             toast.success('Avatar updated!');
             window.location.reload();
-        } catch (error) {
+        } catch {
             toast.error('Avatar upload failed');
         } finally {
             setUploadingAvatar(false);

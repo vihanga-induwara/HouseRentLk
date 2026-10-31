@@ -58,12 +58,12 @@ const FAQ = () => {
                     try {
                         const parsed = JSON.parse(data.content);
                         if (Array.isArray(parsed)) setFaqData(parsed);
-                    } catch (e) {
+                    } catch {
                         // If not JSON, we could handle it differently, but for now just use defaults
                         console.log("FAQ content is not JSON, sticking to defaults");
                     }
                 }
-            } catch (error) {
+            } catch {
                 console.log("No dynamic FAQ found, using defaults");
             } finally {
                 setIsLoading(false);

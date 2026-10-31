@@ -6,12 +6,10 @@ import {
     ArrowRight, MessageSquare, Phone, MoreVertical,
     Filter, Download, Search, Layout
 } from 'lucide-react';
-import { formatCurrency } from '../utils/format';
 
 const LeadCRM = () => {
     const [bookings, setBookings] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [filter, setFilter] = useState('all');
 
     useEffect(() => {
         const fetchLeads = async () => {
@@ -34,7 +32,7 @@ const LeadCRM = () => {
             await API.put(`/bookings/${id}/status`, { status });
             setBookings(prev => prev.map(b => b._id === id ? { ...b, status } : b));
             toast.success(`Updated to ${status}`);
-        } catch (error) {
+        } catch {
             toast.error("Status update failed");
         }
     };

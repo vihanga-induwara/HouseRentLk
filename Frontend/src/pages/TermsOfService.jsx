@@ -11,7 +11,7 @@ const TermsOfService = () => {
             try {
                 const { data } = await API.get('/pages/terms-of-service');
                 setPage(data);
-            } catch (error) {
+            } catch {
                 console.log("No dynamic terms found, using defaults");
             } finally {
                 setIsLoading(false);

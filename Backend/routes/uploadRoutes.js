@@ -2,6 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const { protect } = require('../middleware/authMiddleware');
 const router = express.Router();
 
 const crypto = require('crypto');
@@ -43,17 +44,28 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({
   storage,
   limits: {
-    fileSize: 20 * 1024 * 1024 // 20MB limit as requested
+    fileSize: 20 * 1024 * 1024 // 20MB
   },
   fileFilter
 });
 
+// Turn multer errors (size, count, type) into 400 responses
+const handleUpload = (middleware) => (req, res, next) => {
+  middleware(req, res, (err) => {
+    if (err) {
+      res.status(400);
+      return next(err);
+    }
+    next();
+  });
+};
+
 // @desc    Upload a single image
 // @route   POST /api/upload
 // @access  Private
-router.post('/', upload.single('image'), (req, res) => {
+router.post('/', protect, handleUpload(upload.single('image')), (req, res) => {
   if (!req.file) {
-    return res.status(400).send('No file uploaded');
+    return res.status(400).json({ message: 'No file uploaded' });
   }
   res.send(req.file.path); // path is the Cloudinary secure_url by default in multer-storage-cloudinary
 });
@@ -61,9 +73,9 @@ router.post('/', upload.single('image'), (req, res) => {
 // @desc    Upload multiple images/videos
 // @route   POST /api/upload/multiple
 // @access  Private
-router.post('/multiple', upload.array('images', 10), (req, res) => {
+router.post('/multiple', protect, handleUpload(upload.array('images', 10)), (req, res) => {
   if (!req.files || req.files.length === 0) {
-    return res.status(400).send('No files uploaded');
+    return res.status(400).json({ message: 'No files uploaded' });
   }
   const paths = req.files.map((file) => file.path);
   res.send(paths);

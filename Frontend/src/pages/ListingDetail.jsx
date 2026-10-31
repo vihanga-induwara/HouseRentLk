@@ -58,65 +58,6 @@ const ListingDetail = () => {
     const [submittingReport, setSubmittingReport] = useState(false);
 
     useEffect(() => {
-        const fetchAllData = async () => {
-            setLoading(true);
-            setError(null);
-
-            // Critical: fetch listing first — fail hard if this fails
-            try {
-                const listingRes = await API.get(`/listings/${id}`);
-                setListing(listingRes.data);
-            } catch (err) {
-                setError('Failed to load listing details. It may have been removed.');
-                setLoading(false);
-                console.error(err);
-                return;
-            }
-
-            // Non-critical: reviews, market insights, similar listings — fail gracefully
-            try {
-                const [reviewsRes, insightRes, similarRes] = await Promise.allSettled([
-                    API.get(`/reviews/${id}`),
-                    API.get(`/listings/${id}/market-insights`),
-                    API.get(`/listings/${id}/similar`),
-                ]);
-
-                if (reviewsRes.status === 'fulfilled') setReviews(reviewsRes.value.data);
-                if (insightRes.status === 'fulfilled') setMarketInsight(insightRes.value.data);
-                if (similarRes.status === 'fulfilled') setSimilarListings(similarRes.value.data);
-            } catch (err) {
-                console.error("Secondary data fetch error", err);
-            }
-
-            // Fetch AI price fairness, review sentiment & safety score
-            try {
-                const [fairnessRes, sentimentRes, safetyRes] = await Promise.allSettled([
-                    API.get(`/ai/price-fairness/${id}`),
-                    API.get(`/ai/sentiment/${id}`),
-                    API.get(`/ai/safety-score/${id}`),
-                ]);
-                if (fairnessRes.status === 'fulfilled') setPriceFairness(fairnessRes.value.data);
-                if (sentimentRes.status === 'fulfilled') setReviewSentiment(sentimentRes.value.data);
-                if (safetyRes.status === 'fulfilled') setAreaSafety(safetyRes.value.data);
-            } catch (err) {
-                console.error("AI data fetch error", err);
-            }
-
-            // Track recently viewed
-            try {
-                // We access state 'listing' here but it might be stale in closure if we set it above?
-                // Actually setListing is async in React but we are in async function. 
-                // However, we have the data in `listingRes.data` from the scope above if we saved it to a var.
-                // Let's grab it from the API response we just got.
-                // Re-fetch to be safe or just use the one we got.
-                // Since I refactored the top block, I need to make sure I have access to listing data here.
-                // The previous code used `listingData` variable. I should preserve that.
-            } catch { /* silent */ }
-
-            setLoading(false);
-        };
-
-        // Redoing the function to be cleaner and correct with scope
         const loadData = async () => {
             setLoading(true);
             setError(null);
@@ -127,7 +68,7 @@ const ListingDetail = () => {
                 const res = await API.get(`/listings/${id}`);
                 listingData = res.data;
                 setListing(listingData);
-            } catch (err) {
+            } catch {
                 setError('Failed to load listing details. It may have been removed.');
                 setLoading(false);
                 return;
@@ -277,10 +218,9 @@ const ListingDetail = () => {
     const {
         title, price, location, description,
         beds, baths, size, type,
-        images, amenities, owner,
-        contactDetails, aiDescription,
+        images, amenities, aiDescription,
         virtualTourUrl, isUrgent, views,
-        availableVisits, tenantType, houseRules, minRentalPeriod,
+        tenantType, houseRules, minRentalPeriod,
         agreementRequired, availableFrom, furnished, autoTags, createdAt
     } = listing;
 

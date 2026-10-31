@@ -78,7 +78,7 @@ const AdminScrapingPanel = () => {
             await API.put(`/scraping/admin/sources/${id}/toggle`);
             toast.success('Source toggled');
             fetchAll();
-        } catch (err) { toast.error('Failed to toggle'); }
+        } catch { toast.error('Failed to toggle'); }
     };
 
     const handleKillSource = async (id, name) => {
@@ -87,7 +87,7 @@ const AdminScrapingPanel = () => {
             const res = await API.post(`/scraping/admin/sources/${id}/kill`);
             toast.success(res.data.message);
             fetchAll();
-        } catch (err) { toast.error('Kill switch failed'); }
+        } catch { toast.error('Kill switch failed'); }
     };
 
     const handleDeleteSource = async (id, name) => {
@@ -96,7 +96,7 @@ const AdminScrapingPanel = () => {
             await API.delete(`/scraping/admin/sources/${id}`);
             toast.success('Source deleted');
             fetchAll();
-        } catch (err) { toast.error('Failed to delete'); }
+        } catch { toast.error('Failed to delete'); }
     };
 
     const handleTriggerScrape = async () => {
@@ -123,7 +123,7 @@ const AdminScrapingPanel = () => {
             await API.post(`/scraping/admin/jobs/${id}/stop`);
             toast.success('Job stopped');
             fetchAll();
-        } catch (err) { toast.error('Failed to stop job'); }
+        } catch { toast.error('Failed to stop job'); }
     };
 
     const toggleSourceSelection = (id) => {

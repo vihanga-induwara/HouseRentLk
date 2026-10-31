@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import API from '../utils/api';
 import { toast } from 'react-hot-toast';
@@ -38,7 +38,6 @@ const PostAd = () => {
     // AI State
     const [priceSuggestion, setPriceSuggestion] = useState(null);
     const [aiTitle, setAiTitle] = useState(null);
-    const [spamWarning, setSpamWarning] = useState(null);
     const [imageQualityIssues, setImageQualityIssues] = useState([]);
     const [duplicateIssues, setDuplicateIssues] = useState(null);
 
@@ -90,26 +89,6 @@ const PostAd = () => {
         houseRules: '',
     });
 
-    // Verification Check
-    if (user && !user.isEmailVerified && !user.isPhoneVerified) {
-        return (
-            <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
-                <div className="bg-red-50 p-6 rounded-full mb-6">
-                    <ShieldAlert className="h-16 w-16 text-red-500" />
-                </div>
-                <h2 className="text-3xl font-bold text-slate-900 mb-2">Verification Required</h2>
-                <p className="text-slate-600 max-w-md mb-8">
-                    To maintain a safe community, we require all advertisers to verify either their email address or phone number before posting an ad.
-                </p>
-                <Link to="/profile">
-                    <Button className="px-8 py-3">
-                        Go to Profile to Verify
-                    </Button>
-                </Link>
-            </div>
-        );
-    }
-
     // AI Price Suggestion Handler
     const fetchPriceSuggestion = useCallback(async () => {
         if (!formData.town || !formData.beds) return;
@@ -119,7 +98,7 @@ const PostAd = () => {
                 params: { town: formData.town, beds: formData.beds, baths: formData.baths, size: formData.size || 1000 }
             });
             setPriceSuggestion(data);
-        } catch (err) {
+        } catch {
             setPriceSuggestion({ error: 'Could not fetch price data for this area.' });
         }
     }, [formData.town, formData.beds, formData.baths, formData.size]);
@@ -144,7 +123,7 @@ const PostAd = () => {
                 furnished: formData.furnished
             });
             setAiTitle({ data });
-        } catch (err) {
+        } catch {
             setAiTitle(null);
             toast.error('Title generation failed');
         }
@@ -325,7 +304,6 @@ const PostAd = () => {
                 });
                 if (spamRes.data.verdict === 'spam') {
                     toast.error('Your listing was flagged as suspicious. Please review the content.', { duration: 5000 });
-                    setSpamWarning(spamRes.data);
                     setLoading(false);
                     return;
                 } else if (spamRes.data.verdict === 'suspicious') {
@@ -375,6 +353,7 @@ const PostAd = () => {
                 amenities: formData.amenities || {},
                 images: imageUrls,
                 isUrgent: formData.isUrgent || false,
+                isFeatured: formData.isFeatured || false, // only honoured by the API for admins
                 agreementRequired: formData.agreementRequired || false,
                 availableFrom: formData.availableFrom || new Date(),
                 tenantType: formData.tenantType || 'Any',
@@ -395,6 +374,26 @@ const PostAd = () => {
             setLoading(false);
         }
     };
+
+    // Verification Check (after all hooks so hook order stays stable)
+    if (user && !user.isEmailVerified && !user.isPhoneVerified) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
+                <div className="bg-red-50 p-6 rounded-full mb-6">
+                    <ShieldAlert className="h-16 w-16 text-red-500" />
+                </div>
+                <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">Verification Required</h2>
+                <p className="text-slate-600 dark:text-slate-400 max-w-md mb-8">
+                    To maintain a safe community, we require all advertisers to verify either their email address or phone number before posting an ad.
+                </p>
+                <Link to="/profile">
+                    <Button className="px-8 py-3">
+                        Go to Profile to Verify
+                    </Button>
+                </Link>
+            </div>
+        );
+    }
 
     return (
         <div className="max-w-4xl mx-auto px-4 py-8">
@@ -432,6 +431,7 @@ const PostAd = () => {
                         <StepDetails
                             formData={formData}
                             handleChange={handleChange}
+                            user={user}
                             priceSuggestion={priceSuggestion}
                             onFetchPriceSuggestion={fetchPriceSuggestion}
                             onApplyPrice={applyPrice}

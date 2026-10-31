@@ -18,11 +18,24 @@ const NotificationBell = () => {
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef(null);
 
-    // Fetch unread count on mount and poll every 30 seconds
+    // Fetch unread count on mount and poll every 60 seconds while the tab is visible
     useEffect(() => {
+        const fetchUnreadCount = async () => {
+            if (document.visibilityState !== 'visible') return;
+            try {
+                const { data } = await API.get('/notifications/unread-count');
+                setUnreadCount(data.count);
+            } catch {
+                // Silently fail — user might not be logged in
+            }
+        };
         fetchUnreadCount();
-        const interval = setInterval(fetchUnreadCount, 30000);
-        return () => clearInterval(interval);
+        const interval = setInterval(fetchUnreadCount, 60000);
+        document.addEventListener('visibilitychange', fetchUnreadCount);
+        return () => {
+            clearInterval(interval);
+            document.removeEventListener('visibilitychange', fetchUnreadCount);
+        };
     }, []);
 
     // Close dropdown on outside click
@@ -35,15 +48,6 @@ const NotificationBell = () => {
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
-
-    const fetchUnreadCount = async () => {
-        try {
-            const { data } = await API.get('/notifications/unread-count');
-            setUnreadCount(data.count);
-        } catch {
-            // Silently fail — user might not be logged in
-        }
-    };
 
     const fetchNotifications = async () => {
         try {

@@ -229,6 +229,7 @@ const MyListings = () => {
                                         {(isExpired || isExpiringSoon) && (
                                             <button disabled={isActing} onClick={() => handleRenew(listing._id)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 text-amber-700 text-xs font-medium hover:bg-amber-100 transition-colors disabled:opacity-50"><RefreshCw className="h-3.5 w-3.5" /> Renew 30d</button>
                                         )}
+                                        <button disabled={isActing} onClick={() => handleDuplicate(listing._id)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 text-xs font-medium hover:bg-slate-200 transition-colors disabled:opacity-50"><Copy className="h-3.5 w-3.5" /> Duplicate</button>
                                         <button disabled={isActing} onClick={() => fetchAnalytics(listing)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary-50 text-primary-700 text-xs font-medium hover:bg-primary-100 transition-colors disabled:opacity-50"><BarChart3 className="h-3.5 w-3.5" /> Stats</button>
                                         <button disabled={isActing} onClick={() => handleDelete(listing._id)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 text-red-600 text-xs font-medium hover:bg-red-100 transition-colors disabled:opacity-50"><Trash2 className="h-3.5 w-3.5" /> Delete</button>
                                     </div>

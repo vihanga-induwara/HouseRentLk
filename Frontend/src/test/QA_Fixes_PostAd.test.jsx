@@ -4,7 +4,6 @@ import PostAd from '../pages/PostAd';
 import { BrowserRouter } from 'react-router-dom';
 import API from '../utils/api';
 import { AuthProvider } from '../context/AuthContext';
-import { act } from 'react';
 
 // Mock API
 vi.mock('../utils/api');

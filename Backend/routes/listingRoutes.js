@@ -1,6 +1,15 @@
 const express = require('express');
+const os = require('os');
 const multer = require('multer');
-const upload = multer({ dest: 'uploads/' });
+// CSV bulk upload: temp file, deleted by the controller after parsing
+const upload = multer({
+    dest: os.tmpdir(),
+    limits: { fileSize: 2 * 1024 * 1024 }, // 2MB
+    fileFilter: (req, file, cb) => {
+        const isCsv = file.mimetype === 'text/csv' || file.mimetype === 'application/vnd.ms-excel' || file.originalname.toLowerCase().endsWith('.csv');
+        cb(isCsv ? null : new Error('Only CSV files are allowed'), isCsv);
+    },
+});
 const router = express.Router();
 const {
     getListings,

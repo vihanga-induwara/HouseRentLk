@@ -101,7 +101,7 @@ const EditListing = () => {
                     availableVisits: data.availableVisits || [],
                 });
                 setExistingImages(data.images || []);
-            } catch (error) {
+            } catch {
                 toast.error('Failed to load listing');
                 navigate('/my-listings');
             } finally {

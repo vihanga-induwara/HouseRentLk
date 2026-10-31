@@ -10,7 +10,7 @@ const ExternalListingCard = ({ listing }) => {
             setClicked(true);
             try {
                 await API.post(`/scraping/external-listings/${listing._id}/click`);
-            } catch (e) { /* silent */ }
+            } catch { /* silent */ }
         }
         window.open(listing.sourceUrl, '_blank');
     };

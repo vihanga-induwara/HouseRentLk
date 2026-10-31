@@ -2,7 +2,6 @@ import { MapPin, Bed, Bath, Layout, Heart, Share2, ShieldCheck, Zap } from 'luci
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-hot-toast';
-import { formatCurrency } from '../utils/format';
 import { NO_IMAGE_PLACEHOLDER } from '../utils/constants';
 
 const ListingCard = ({ listing }) => {
@@ -26,7 +25,7 @@ const ListingCard = ({ listing }) => {
                 await navigator.clipboard.writeText(url);
                 toast.success('Link copied to clipboard!');
             }
-        } catch (err) {
+        } catch {
             try {
                 await navigator.clipboard.writeText(url);
                 toast.success('Link copied to clipboard!');

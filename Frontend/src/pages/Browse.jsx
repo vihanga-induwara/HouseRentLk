@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import ListingCard from '../components/ListingCard';
 import ExternalListingCard from '../components/ExternalListingCard';
@@ -27,18 +27,10 @@ L.Marker.prototype.options.icon = DefaultIcon;
 // Component to auto-center map — only updates when center/zoom actually change
 const ChangeView = ({ center, zoom }) => {
     const map = useMap();
-    const prevCenter = useRef(null);
-    const prevZoom = useRef(null);
-    if (
-        !prevCenter.current ||
-        prevCenter.current[0] !== center[0] ||
-        prevCenter.current[1] !== center[1] ||
-        prevZoom.current !== zoom
-    ) {
-        map.setView(center, zoom);
-        prevCenter.current = center;
-        prevZoom.current = zoom;
-    }
+    const [lat, lng] = center;
+    useEffect(() => {
+        map.setView([lat, lng], zoom);
+    }, [map, lat, lng, zoom]);
     return null;
 };
 

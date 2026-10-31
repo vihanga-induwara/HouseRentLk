@@ -66,7 +66,7 @@ const AdminScrapedListings = () => {
             await API.put(`/scraping/admin/listings/${id}/${action}`);
             toast.success(`Listing ${action}d`);
             fetchListings();
-        } catch (err) {
+        } catch {
             toast.error(`Failed to ${action}`);
         }
     };
@@ -77,7 +77,7 @@ const AdminScrapedListings = () => {
             await API.post(`/scraping/admin/listings/${id}/analyze`);
             toast.success('AI analysis updated', { id: 'analyze' });
             fetchListings();
-        } catch (err) {
+        } catch {
             toast.error('Re-analysis failed', { id: 'analyze' });
         }
     };
@@ -90,7 +90,7 @@ const AdminScrapedListings = () => {
             toast.success(`${selectedIds.length} listings ${action}d`);
             setSelectedIds([]);
             fetchListings();
-        } catch (err) {
+        } catch {
             toast.error(`Bulk ${action} failed`);
         }
     };

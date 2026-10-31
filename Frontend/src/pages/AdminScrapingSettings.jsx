@@ -11,7 +11,6 @@ const AdminScrapingSettings = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
     const [isLoading, setIsLoading] = useState(true);
-    const [exposureRules, setExposureRules] = useState(null);
     const [conversionStats, setConversionStats] = useState(null);
 
     // Local settings state
@@ -38,7 +37,6 @@ const AdminScrapingSettings = () => {
                 API.get('/scraping/admin/exposure-rules').catch(() => ({ data: null })),
                 API.get('/scraping/admin/conversion-stats').catch(() => ({ data: null })),
             ]);
-            setExposureRules(exposureRes.data);
             setConversionStats(conversionRes.data);
             if (exposureRes.data) {
                 setSettings(prev => ({ ...prev, ...exposureRes.data }));

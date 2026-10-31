@@ -111,7 +111,7 @@ const AdminDashboard = () => {
             await API.put(`/verification/${userId}`, { status, message });
             toast.success(`Verification ${status} successfully`);
             fetchData();
-        } catch (error) {
+        } catch {
             toast.error('Failed to update verification status');
         }
     };
@@ -166,7 +166,7 @@ const AdminDashboard = () => {
         try {
             await API.put('/settings', siteSettings);
             toast.success('Site settings updated successfully');
-        } catch (error) {
+        } catch {
             toast.error('Failed to update settings');
         } finally {
             setSaveLoading(false);

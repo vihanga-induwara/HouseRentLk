@@ -12,6 +12,10 @@ const SavedSearch = require('../models/SavedSearch');
 const { createNotification } = require('./notificationController');
 const aiService = require('../services/aiService');
 
+const LISTING_TTL_MS = 30 * 24 * 60 * 60 * 1000; // listings expire after 30 days
+const MAX_BULK_ROWS = 200;
+const SRI_LANKA_CENTER = [80.7718, 7.8731]; // [lng, lat] fallback when a CSV row has no coordinates
+
 // @desc    Get all listings (Public - Approved Only)
 // @route   GET /api/listings
 // @access  Public
@@ -508,6 +512,12 @@ const bulkUploadListings = asyncHandler(async (req, res) => {
         throw new Error('Please upload a CSV file');
     }
 
+    if (!req.user.isEmailVerified && !req.user.isPhoneVerified) {
+        fs.unlink(req.file.path, () => { });
+        res.status(403);
+        throw new Error('You must verify your Email or Phone Number before posting ads.');
+    }
+
     const listings = [];
     const results = {
         success: 0,
@@ -525,56 +535,90 @@ const bulkUploadListings = asyncHandler(async (req, res) => {
         }
     };
 
-    fs.createReadStream(req.file.path)
-        .pipe(csv())
-        .on('data', (row) => {
-            try {
-                // Basic mapping and validation
-                if (!row.title || !row.price) return;
-
-                listings.push({
-                    title: row.title,
-                    type: row.type || 'House',
-                    price: Number(row.price),
-                    description: row.description || '',
-                    beds: Number(row.beds) || 1,
-                    baths: Number(row.baths) || 1,
-                    size: row.size || '1000 sqft',
-                    location: {
-                        town: row.town || 'Unknown',
-                        address: row.address || ''
-                    },
-                    owner: req.user.id,
-                    status: 'pending',
-                    amenities: {
-                        parking: row.parking === 'true',
-                        wifi: row.wifi === 'true',
-                        furnished: row.furnished === 'true'
-                    }
-                });
-            } catch (err) {
-                results.errors++;
-            }
-        })
-        .on('error', (error) => {
-            cleanupFile();
-            res.status(500);
-            throw new Error('CSV parsing failed: ' + error.message);
-        })
-        .on('end', async () => {
-            try {
-                if (listings.length > 0) {
-                    const created = await Listing.insertMany(listings);
-                    results.success = created.length;
-                }
-                res.status(201).json(results);
-            } catch (err) {
-                res.status(500);
-                throw new Error('Batch insert failed: ' + err.message);
-            } finally {
-                cleanupFile();
-            }
+    // Parse the whole file first; errors inside stream callbacks cannot be thrown
+    // (asyncHandler would not see them and the process would crash).
+    let rows;
+    try {
+        rows = await new Promise((resolve, reject) => {
+            const parsed = [];
+            fs.createReadStream(req.file.path)
+                .pipe(csv())
+                .on('data', (row) => {
+                    if (parsed.length >= MAX_BULK_ROWS) return;
+                    parsed.push(row);
+                })
+                .on('error', reject)
+                .on('end', () => resolve(parsed));
         });
+    } catch (error) {
+        cleanupFile();
+        res.status(400);
+        throw new Error('CSV parsing failed: ' + error.message);
+    }
+
+    rows.forEach((row, index) => {
+        try {
+            // Basic mapping and validation
+            const price = Number(row.price);
+            if (!row.title || !Number.isFinite(price) || price <= 0) {
+                results.errors++;
+                results.failedRows.push({ row: index + 2, reason: 'Missing title or invalid price' });
+                return;
+            }
+
+            const town = (row.town || '').trim();
+            const street = (row.street || '').trim();
+            const lng = Number(row.lng);
+            const lat = Number(row.lat);
+            const doc = new Listing({
+                title: row.title,
+                type: row.type || 'House',
+                price,
+                description: row.description || `${row.type || 'House'} for rent in ${town}`,
+                beds: Number(row.beds) || 1,
+                baths: Number(row.baths) || 1,
+                size: Number(row.size) || 0,
+                furnished: row.furnished || 'Unfurnished',
+                location: {
+                    town,
+                    street,
+                    address: row.address || [street, town].filter(Boolean).join(', '),
+                    coordinates: {
+                        type: 'Point',
+                        coordinates: Number.isFinite(lng) && Number.isFinite(lat) ? [lng, lat] : SRI_LANKA_CENTER,
+                    },
+                },
+                owner: req.user.id,
+                status: 'pending',
+                expiresAt: new Date(Date.now() + LISTING_TTL_MS),
+                amenities: {
+                    parking: row.parking === 'true',
+                    wifi: row.wifi === 'true',
+                },
+            });
+
+            const validationError = doc.validateSync();
+            if (validationError) {
+                results.errors++;
+                results.failedRows.push({ row: index + 2, reason: validationError.message });
+                return;
+            }
+            listings.push(doc);
+        } catch (err) {
+            results.errors++;
+            results.failedRows.push({ row: index + 2, reason: err.message });
+        }
+    });
+
+    try {
+        if (listings.length > 0) {
+            const created = await Listing.insertMany(listings, { ordered: false });
+            results.success = created.length;
+        }
+        res.status(201).json(results);
+    } finally {
+        cleanupFile();
+    }
 });
 
 // @desc    Get similar listings

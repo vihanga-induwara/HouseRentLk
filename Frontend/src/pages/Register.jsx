@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Input from '../components/Input';
 import Button from '../components/Button';
@@ -11,7 +11,7 @@ const Register = () => {
     const [step, setStep] = useState(1); // 1: Basic Info, 2: Preferences
     const [role, setRole] = useState('renter');
     const navigate = useNavigate();
-    const { register, user } = useAuth();
+    const { register } = useAuth();
     const [isLoading, setIsLoading] = useState(false);
 
     // Validation states
@@ -55,7 +55,7 @@ const Register = () => {
                     password: '',
                     confirmPassword: ''
                 }));
-            } catch (e) {
+            } catch {
                 console.error("Error parsing saved form data.");
             }
         }

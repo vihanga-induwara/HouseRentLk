@@ -4,8 +4,6 @@ const cors = require('cors');
 const connectDB = require('./config/db');
 const cloudinary = require('cloudinary').v2;
 const helmet = require('helmet');
-const mongoSanitize = require('express-mongo-sanitize');
-const xss = require('xss-clean');
 const morgan = require('morgan');
 
 // Load env vars
@@ -25,16 +23,16 @@ const app = express();
 
 // Security Middlewares
 app.use(helmet()); // Secure HTTP headers
-const { securityMiddleware } = require('./middleware/securityMiddleware');
-app.use(securityMiddleware); // Custom NoSQL and XSS sanitization
 
 // Logging middleware
 if (process.env.NODE_ENV !== 'test') {
     app.use(morgan('combined'));
 }
 
-// Middleware
-app.use(express.json());
+// Body parsing, then sanitization (must run after the body is parsed)
+app.use(express.json({ limit: '1mb' }));
+const { securityMiddleware } = require('./middleware/securityMiddleware');
+app.use(securityMiddleware); // Custom NoSQL and XSS sanitization
 app.use((req, res, next) => {
     const { cookie } = req.headers;
     req.cookies = {};

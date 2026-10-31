@@ -30,6 +30,11 @@ const registerUser = asyncHandler(async (req, res) => {
         throw new Error('Password must be at least 8 characters and include uppercase, lowercase, and numbers.');
     }
 
+    if (role && !['renter', 'owner', 'broker'].includes(role)) {
+        res.status(400);
+        throw new Error('Invalid role');
+    }
+
     // Check if user exists
     const userExists = await User.findOne({ email });
 

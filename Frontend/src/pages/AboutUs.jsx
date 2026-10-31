@@ -11,7 +11,7 @@ const AboutUs = () => {
             try {
                 const { data } = await API.get('/pages/about-us');
                 setPage(data);
-            } catch (error) {
+            } catch {
                 console.log("No dynamic about us found, using defaults");
             } finally {
                 setIsLoading(false);

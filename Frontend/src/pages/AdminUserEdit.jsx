@@ -52,7 +52,7 @@ const AdminUserEdit = () => {
                     isVerified: data.user.isVerified || false,
                     renterProfile: data.user.renterProfile || formData.renterProfile
                 });
-            } catch (error) {
+            } catch {
                 toast.error('Failed to load user details');
                 navigate('/admin');
             } finally {
@@ -105,7 +105,7 @@ const AdminUserEdit = () => {
             await API.delete(`/admin/users/${id}`);
             toast.success('User deleted');
             navigate('/admin');
-        } catch (error) {
+        } catch {
             toast.error('Delete failed');
         }
     };

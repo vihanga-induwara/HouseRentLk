@@ -32,7 +32,7 @@ const listingSchema = mongoose.Schema(
             // GeoJSON Point for Maps
             coordinates: {
                 type: { type: String, enum: ['Point'], default: 'Point' },
-                coordinates: { type: [Number], index: '2dsphere' }, // [lng, lat]
+                coordinates: { type: [Number] }, // [lng, lat] — indexed via listingSchema.index below
             },
         },
         // Rental Details
