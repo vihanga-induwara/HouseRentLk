@@ -1,9 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Sparkles, ShieldCheck, Send, MessageSquare, Phone, CheckCircle, Bell, BellOff } from 'lucide-react';
 import Button from '../Button';
+import BookViewing from './BookViewing';
 import API from '../../utils/api';
 import { toast } from 'react-hot-toast';
 import { formatCurrency } from '../../utils/format';
+
+// Labels for the API's price-fairness score
+const FAIRNESS_LABELS = {
+    great_deal: 'Great Deal',
+    fair: 'Fair Price',
+    above_market: 'Above Market',
+};
 
 const normalizePhone = (phone) => {
     if (!phone) return '';
@@ -20,10 +28,12 @@ const ListingSidebar = ({ listing, priceFairness, user }) => {
     const [inquirySent, setInquirySent] = useState(false);
     const [isFollowing, setIsFollowing] = useState(false);
     const [followingLoading, setFollowingLoading] = useState(false);
+    const isOwnListing = Boolean(user && owner?._id && user._id === owner._id);
+    const fairnessLabel = FAIRNESS_LABELS[priceFairness?.score];
 
     useEffect(() => {
         const checkFollowStatus = async () => {
-            if (user && owner?._id) {
+            if (user && owner?._id && user._id !== owner._id) {
                 try {
                     const { data } = await API.get(`/users/follow-status/${owner._id}`);
                     setIsFollowing(data.isFollowing);
@@ -93,16 +103,18 @@ const ListingSidebar = ({ listing, priceFairness, user }) => {
                     )}
 
                     {/* AI Price Fairness Badge */}
-                    {priceFairness && (
-                        <div className={`mt-4 flex items-center gap-2 px-4 py-2.5 rounded-2xl border text-xs font-black uppercase tracking-widest ${priceFairness.label === 'Great Deal'
+                    {fairnessLabel && (
+                        <div title={priceFairness.message} className={`mt-4 flex items-center gap-2 px-4 py-2.5 rounded-2xl border text-xs font-black uppercase tracking-widest ${priceFairness.score === 'great_deal'
                             ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300'
-                            : priceFairness.label === 'Fair Price'
+                            : priceFairness.score === 'fair'
                                 ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300'
                                 : 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300'
                             }`}>
                             <Sparkles className="h-4 w-4" />
-                            <span>{priceFairness.label}</span>
-                            <span className="ml-auto text-[10px] opacity-70">{priceFairness.score}/100</span>
+                            <span>{fairnessLabel}</span>
+                            {priceFairness.sampleSize > 0 && (
+                                <span className="ml-auto text-[10px] opacity-70 normal-case tracking-normal">vs {priceFairness.sampleSize} similar</span>
+                            )}
                         </div>
                     )}
                 </div>
@@ -125,7 +137,7 @@ const ListingSidebar = ({ listing, priceFairness, user }) => {
                                 <p className="font-black text-slate-900 dark:text-white italic tracking-tight">{owner?.name}</p>
                                 {owner?.verificationStatus === 'verified' && <ShieldCheck className="h-4 w-4 text-primary-500" title="Identity Verified" />}
                             </div>
-                            {user?.id !== owner?._id && (
+                            {!isOwnListing && (
                                 <button
                                     onClick={(e) => { e.stopPropagation(); handleFollow(); }}
                                     disabled={followingLoading}
@@ -149,7 +161,9 @@ const ListingSidebar = ({ listing, priceFairness, user }) => {
 
                 {/* Inquiry */}
                 <div className="space-y-4">
-                    {!inquirySent ? (
+                    {isOwnListing ? (
+                        <p className="text-xs text-slate-500 text-center">This is your listing.</p>
+                    ) : !inquirySent ? (
                         <>
                             <textarea
                                 value={inquiryMsg}
@@ -179,7 +193,13 @@ const ListingSidebar = ({ listing, priceFairness, user }) => {
                         </div>
                     )}
 
-                    {owner?.phone && (
+                    {!isOwnListing && (
+                        <div className="pt-6 mt-4 border-t border-slate-100 dark:border-slate-700">
+                            <BookViewing listingId={listing._id} user={user} />
+                        </div>
+                    )}
+
+                    {owner?.phone && !isOwnListing && (
                         <div className="pt-6 mt-4 border-t border-slate-100 dark:border-slate-700 flex flex-col items-center">
                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Direct Call</span>
                             <a

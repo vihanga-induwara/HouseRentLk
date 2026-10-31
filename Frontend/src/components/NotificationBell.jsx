@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Bell, MessageSquare, CheckCircle, XCircle, Clock, Heart, X } from 'lucide-react';
+import { Bell, MessageSquare, CheckCircle, XCircle, Clock, Heart, X, Flag, Search, ShieldCheck, ShieldX, CalendarDays, Mail, Home, Star } from 'lucide-react';
 import API from '../utils/api';
 
 const TYPE_ICONS = {
@@ -10,6 +10,15 @@ const TYPE_ICONS = {
     listing_rejected: { icon: XCircle, color: 'text-red-500' },
     listing_expiring: { icon: Clock, color: 'text-orange-500' },
     listing_favorited: { icon: Heart, color: 'text-pink-500' },
+    new_listing_from_followed: { icon: Home, color: 'text-primary-500' },
+    listing_reported: { icon: Flag, color: 'text-red-500' },
+    listing_reviewed: { icon: Star, color: 'text-amber-500' },
+    saved_search_match: { icon: Search, color: 'text-primary-500' },
+    verification_approved: { icon: ShieldCheck, color: 'text-emerald-500' },
+    verification_rejected: { icon: ShieldX, color: 'text-red-500' },
+    booking_requested: { icon: CalendarDays, color: 'text-blue-500' },
+    booking_updated: { icon: CalendarDays, color: 'text-emerald-500' },
+    contact_message: { icon: Mail, color: 'text-slate-500' },
 };
 
 const NotificationBell = () => {

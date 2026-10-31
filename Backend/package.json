@@ -8,7 +8,8 @@
     "dev": "nodemon server.js",
     "test": "cross-env NODE_ENV=test jest",
     "seed:admin": "node scripts/seed/seedAdmin.js",
-    "seed:demo": "node scripts/seed/seedDemoListings.js"
+    "seed:demo": "node scripts/seed/seedDemoListings.js",
+    "db:sync-indexes": "node scripts/syncIndexes.js"
   },
   "keywords": [],
   "author": "",

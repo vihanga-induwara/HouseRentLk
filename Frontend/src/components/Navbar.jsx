@@ -126,7 +126,7 @@ const Navbar = () => {
                                                 </Link>
                                                 <Link to="/owner/leads" className="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-primary-600 transition-colors" onClick={() => setDropdownOpen(false)}>
                                                     <Users className="h-4 w-4" />
-                                                    Leads
+                                                    Viewings
                                                 </Link>
                                                 <Link to="/inbox" className="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-primary-600 transition-colors" onClick={() => setDropdownOpen(false)}>
                                                     <MessageSquare className="h-4 w-4" />
@@ -241,7 +241,7 @@ const Navbar = () => {
                                     <Link to="/owner/leads" onClick={() => setIsOpen(false)}>
                                         <Button variant="outline" className="w-full justify-center rounded-xl text-sm h-auto py-3">
                                             <Users className="h-4 w-4 mb-1 block" />
-                                            Leads
+                                            Viewings
                                         </Button>
                                     </Link>
                                 </div>

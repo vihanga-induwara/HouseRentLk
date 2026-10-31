@@ -147,6 +147,9 @@ const listingSchema = mongoose.Schema(
         renewedAt: {
             type: Date,
         },
+        expiryWarnedAt: {
+            type: Date, // set by the scheduler; cleared on renewal
+        },
         isGoodDeal: {
             type: Boolean,
             default: false,

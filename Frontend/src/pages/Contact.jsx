@@ -32,14 +32,11 @@ const Contact = () => {
         e.preventDefault();
         setSending(true);
         try {
-            await API.post('/inquiries', {
-                ...formData,
-                type: 'support'
-            });
+            await API.post('/contact', formData);
             toast.success("Message sent successfully! We'll get back to you soon.");
             setFormData({ name: '', email: '', subject: '', message: '' });
-        } catch {
-            toast.error("Failed to send message. Please try again.");
+        } catch (error) {
+            toast.error(error.response?.data?.message || "Failed to send message. Please try again.");
         } finally {
             setSending(false);
         }

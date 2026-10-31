@@ -43,7 +43,8 @@ const userSchema = mongoose.Schema(
         verificationDocs: [
             {
                 type: { type: String, enum: ['NIC', 'Utility Bill', 'Deed', 'Business Reg'] },
-                url: String,
+                url: String, // legacy public URL (documents uploaded before private storage)
+                publicId: String, // Cloudinary "authenticated" asset id
                 status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
                 comment: String,
             }

@@ -54,7 +54,7 @@ const unfollowUser = asyncHandler(async (req, res) => {
 // @access  Private
 const getFollowers = asyncHandler(async (req, res) => {
     const followers = await User.find({ following: req.user.id })
-        .select('name email phone avatar createdAt')
+        .select('name avatar createdAt') // followers' contact details stay private
         .sort({ createdAt: -1 });
 
     res.status(200).json({
@@ -81,23 +81,27 @@ const getBrokers = asyncHandler(async (req, res) => {
     const query = { role: 'broker', status: 'active' };
 
     if (name) {
-        query.name = { $regex: name, $options: 'i' };
+        // Escape regex special characters to prevent ReDoS
+        const safeName = String(name).slice(0, 80).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        query.name = { $regex: safeName, $options: 'i' };
     }
 
-    const skip = (Number(page) - 1) * Number(limit);
-    const brokers = await User.find(query)
-        .select('name avatar bio verificationStatus createdAt')
-        .sort({ verificationStatus: 1, createdAt: -1 })
-        .skip(skip)
-        .limit(Number(limit));
-
-    const total = await User.countDocuments(query);
+    const pageSize = Math.min(Math.max(parseInt(limit, 10) || 12, 1), 50);
+    const skip = (Math.max(parseInt(page, 10) || 1, 1) - 1) * pageSize;
+    const [brokers, total] = await Promise.all([
+        User.find(query)
+            .select('name avatar bio verificationStatus createdAt')
+            .sort({ verificationStatus: 1, createdAt: -1 })
+            .skip(skip)
+            .limit(pageSize),
+        User.countDocuments(query),
+    ]);
 
     res.status(200).json({
         success: true,
         count: brokers.length,
         total,
-        pages: Math.ceil(total / Number(limit)),
+        pages: Math.ceil(total / pageSize),
         data: brokers
     });
 });

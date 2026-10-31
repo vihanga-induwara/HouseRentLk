@@ -13,6 +13,21 @@ const { createNotification } = require('./notificationController');
 const aiService = require('../services/aiService');
 
 const LISTING_TTL_MS = 30 * 24 * 60 * 60 * 1000; // listings expire after 30 days
+const MAX_PAGE_SIZE = 50;
+// Owner fields that are safe to show to anyone; phone is added for logged-in viewers
+const OWNER_PUBLIC_FIELDS = 'name avatar role verificationStatus isEmailVerified isPhoneVerified createdAt';
+// Fields an owner may set when creating a listing (everything else is server-controlled)
+const CREATABLE_FIELDS = [
+    'title', 'description', 'type', 'location', 'price', 'negotiable', 'advancePayment',
+    'minRentalPeriod', 'beds', 'baths', 'size', 'furnished', 'amenities', 'images', 'video',
+    'virtualTourUrl', 'isUrgent', 'agreementRequired', 'availableFrom', 'tenantType',
+    'houseRules', 'availableVisits', 'contactDetails',
+];
+const isObjectId = (value) => /^[a-f\d]{24}$/i.test(String(value));
+const pick = (obj, keys) => keys.reduce((acc, key) => {
+    if (obj[key] !== undefined) acc[key] = obj[key];
+    return acc;
+}, {});
 const MAX_BULK_ROWS = 200;
 const SRI_LANKA_CENTER = [80.7718, 7.8731]; // [lng, lat] fallback when a CSV row has no coordinates
 
@@ -47,8 +62,8 @@ const getListings = asyncHandler(async (req, res) => {
     const escapeRegex = (text) => text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
 
     // Advanced Filtering
-    if (town) query['location.town'] = { $regex: escapeRegex(town), $options: 'i' };
-    if (req.query.owner) query.owner = req.query.owner;
+    if (town) query['location.town'] = { $regex: escapeRegex(String(town)), $options: 'i' };
+    if (req.query.owner && isObjectId(req.query.owner)) query.owner = req.query.owner;
     if (minPrice || maxPrice) {
         query.price = {};
         if (minPrice) query.price.$gte = Number(minPrice);
@@ -69,26 +84,30 @@ const getListings = asyncHandler(async (req, res) => {
     });
 
     // Pagination & Sorting
-    const skip = (Number(page) - 1) * Number(limit);
-    let sortQuery = { createdAt: -1 }; // Default: Newest
+    const pageSize = Math.min(Math.max(parseInt(limit, 10) || 12, 1), MAX_PAGE_SIZE);
+    const pageNumber = Math.max(parseInt(page, 10) || 1, 1);
+    const skip = (pageNumber - 1) * pageSize;
+    let sortQuery = { isFeatured: -1, createdAt: -1 }; // Default: featured first, then newest
 
+    if (sort === 'newest') sortQuery = { createdAt: -1 };
     if (sort === 'price_asc') sortQuery = { price: 1 };
     if (sort === 'price_desc') sortQuery = { price: -1 };
     if (sort === 'views') sortQuery = { views: -1 };
 
-    const listings = await Listing.find(query)
-        .populate('owner', 'name email phone avatar')
-        .sort(sortQuery)
-        .skip(skip)
-        .limit(Number(limit));
-
-    const total = await Listing.countDocuments(query);
+    const [listings, total] = await Promise.all([
+        Listing.find(query)
+            .populate('owner', OWNER_PUBLIC_FIELDS)
+            .sort(sortQuery)
+            .skip(skip)
+            .limit(pageSize),
+        Listing.countDocuments(query),
+    ]);
 
     res.status(200).json({
         success: true,
         count: listings.length,
         total,
-        pages: Math.ceil(total / Number(limit)),
+        pages: Math.ceil(total / pageSize),
         data: listings
     });
 });
@@ -97,16 +116,39 @@ const getListings = asyncHandler(async (req, res) => {
 // @route   GET /api/listings/:id
 // @access  Public
 const getListing = asyncHandler(async (req, res) => {
-    const listing = await Listing.findById(req.params.id).populate('owner', 'name email phone avatar');
+    if (!isObjectId(req.params.id)) {
+        res.status(404);
+        throw new Error('Listing not found');
+    }
+
+    // Phone is only shown to logged-in users (limits scraping of contact details)
+    const ownerFields = req.user ? `${OWNER_PUBLIC_FIELDS} phone` : OWNER_PUBLIC_FIELDS;
+    const listing = await Listing.findById(req.params.id).populate('owner', ownerFields);
 
     if (!listing) {
         res.status(404);
         throw new Error('Listing not found');
     }
 
-    // Increment views
-    listing.views = (listing.views || 0) + 1;
-    await listing.save({ validateBeforeSave: false });
+    const isOwner = req.user && listing.owner?._id.toString() === req.user.id;
+    const isAdmin = req.user?.role === 'admin';
+
+    // Only approved/rented listings are public; drafts and rejected ads are owner/admin only
+    if (!['approved', 'rented'].includes(listing.status) && !isOwner && !isAdmin) {
+        res.status(404);
+        throw new Error('Listing not found');
+    }
+
+    if (!req.user) {
+        // Hide secondary contact numbers from anonymous visitors too
+        listing.contactDetails = undefined;
+    }
+
+    // Count views atomically, excluding the owner's own visits
+    if (!isOwner) {
+        await Listing.updateOne({ _id: listing._id }, { $inc: { views: 1 } });
+        listing.views = (listing.views || 0) + 1;
+    }
 
     res.status(200).json(listing);
 });
@@ -139,10 +181,13 @@ const createListing = asyncHandler(async (req, res) => {
         throw new Error('You must verify your Email or Phone Number before posting an ad.');
     }
 
-    const listingData = { ...req.body, owner: req.user.id, status: 'pending' };
+    const listingData = { ...pick(req.body, CREATABLE_FIELDS), owner: req.user.id, status: 'pending' };
+    if (req.user.role === 'admin' && req.body.isFeatured !== undefined) {
+        listingData.isFeatured = Boolean(req.body.isFeatured);
+    }
 
     // Auto-set expiry to 30 days from now
-    listingData.expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    listingData.expiresAt = new Date(Date.now() + LISTING_TTL_MS);
 
     // Generate AI Description
     const aiContent = await generateAIContent(listingData);
@@ -193,7 +238,7 @@ const updateListing = asyncHandler(async (req, res) => {
 
     // Prevent mass assignment of sensitive fields
     let updateData = { ...req.body };
-    const protectedFields = ['owner', 'views', 'expiresAt', 'renewedAt', 'aiDescription', 'createdAt', 'updatedAt', 'autoTags', 'nearbyPlaces', '_id'];
+    const protectedFields = ['owner', 'views', 'shares', 'expiresAt', 'renewedAt', 'expiryWarnedAt', 'aiDescription', 'createdAt', 'updatedAt', 'autoTags', 'nearbyPlaces', 'isGoodDeal', '_id'];
     protectedFields.forEach(field => delete updateData[field]);
 
     // If owner updates, reset status to pending (unless admin)
@@ -301,32 +346,39 @@ const updateListingStatus = asyncHandler(async (req, res) => {
             await Promise.all(notificationPromises);
         }
 
-        // Notify users with matching Saved Searches
+        // Notify users with matching Saved Searches (price/beds/type filtered in the database)
         if (status === 'approved') {
-            const savedSearches = await SavedSearch.find({ isAlertActive: true });
+            const savedSearches = await SavedSearch.find({
+                isAlertActive: true,
+                user: { $ne: listing.owner },
+                $and: [
+                    { $or: [{ 'filters.minPrice': { $in: [null, 0] } }, { 'filters.minPrice': { $lte: listing.price } }] },
+                    { $or: [{ 'filters.maxPrice': { $in: [null, 0] } }, { 'filters.maxPrice': { $gte: listing.price } }] },
+                    { $or: [{ 'filters.type': { $in: [null, '', 'Any'] } }, { 'filters.type': listing.type }] },
+                ],
+            }).select('name user filters').lean();
 
-            for (const search of savedSearches) {
-                const { filters, user: userId } = search;
-                let matches = true;
+            // Town (substring) and beds (stored as a string such as "2" or "4+") are matched here
+            const town = listing.location.town.toLowerCase();
+            const matched = savedSearches.filter(s => {
+                const minBeds = parseInt(s.filters?.beds, 10);
+                if (minBeds && listing.beds < minBeds) return false;
+                return !s.filters?.town || town.includes(String(s.filters.town).toLowerCase());
+            });
 
-                if (filters.town && !listing.location.town.toLowerCase().includes(filters.town.toLowerCase())) matches = false;
-                if (filters.minPrice && listing.price < filters.minPrice) matches = false;
-                if (filters.maxPrice && listing.price > filters.maxPrice) matches = false;
-                if (filters.beds && listing.beds < filters.beds) matches = false;
-                if (filters.type && filters.type !== 'Any' && listing.type !== filters.type) matches = false;
+            await Promise.all(matched.map(search => createNotification({
+                userId: search.user,
+                type: 'saved_search_match',
+                title: `New Match for "${search.name}"! 🔍`,
+                message: `A new property matching your saved search "${search.name}" was just posted in ${listing.location.town}.`,
+                link: `/listings/${listing._id}`,
+            })));
 
-                if (matches) {
-                    await createNotification({
-                        userId: userId,
-                        type: 'listing_favorited', // Reuse or add new type
-                        title: `New Match for "${search.name}"! 🔍`,
-                        message: `A new property matching your saved search "${search.name}" was just posted in ${listing.location.town}.`,
-                        link: `/listings/${listing._id}`,
-                    });
-
-                    search.lastNotifiedAt = Date.now();
-                    await search.save();
-                }
+            if (matched.length > 0) {
+                await SavedSearch.updateMany(
+                    { _id: { $in: matched.map(s => s._id) } },
+                    { $set: { lastNotifiedAt: new Date() } }
+                );
             }
         }
     }
@@ -379,8 +431,9 @@ const renewListing = asyncHandler(async (req, res) => {
         throw new Error('Not authorized');
     }
 
-    listing.expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    listing.expiresAt = new Date(Date.now() + LISTING_TTL_MS);
     listing.renewedAt = new Date();
+    listing.expiryWarnedAt = undefined;
 
     // If it was expired, set back to pending for re-approval
     if (listing.status === 'expired') {
@@ -492,7 +545,9 @@ const duplicateListing = asyncHandler(async (req, res) => {
     delete listingObj.updatedAt;
     delete listingObj.views;
     delete listingObj.renewedAt;
+    delete listingObj.expiryWarnedAt;
     delete listingObj.aiDescription;
+    delete listingObj.shares;
 
     // Reset status and set new expiry
     listingObj.status = 'pending';
@@ -676,18 +731,15 @@ const reportListing = asyncHandler(async (req, res) => {
     });
 
 
-    // Notify admins
-    try {
-        await createNotification({
-            userId: listing.owner,
-            type: 'listing_reported',
-            title: 'Listing Reported',
-            message: `Your listing "${listing.title}" has been reported and is under review.`,
-            link: '/my-listings',
-        });
-    } catch (err) {
-        console.error('Failed to send report notification:', err);
-    }
+    // Notify admins (not the owner, who may be the subject of a scam report)
+    const admins = await User.find({ role: 'admin', status: 'active' }).select('_id').lean();
+    await Promise.all(admins.map(admin => createNotification({
+        userId: admin._id,
+        type: 'listing_reported',
+        title: 'New listing report',
+        message: `"${listing.title}" was reported: ${reason}`,
+        link: '/admin',
+    })));
 
     res.status(201).json({ message: 'Report submitted successfully', report });
 });

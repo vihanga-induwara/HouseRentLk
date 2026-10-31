@@ -2,10 +2,14 @@ const mongoose = require('mongoose');
 
 const scrapeJobSchema = mongoose.Schema(
     {
+        // Empty for jobs started by the scheduler
         triggeredBy: {
             type: mongoose.Schema.ObjectId,
             ref: 'User',
-            required: true,
+        },
+        isScheduled: {
+            type: Boolean,
+            default: false,
         },
         source: {
             type: mongoose.Schema.ObjectId,

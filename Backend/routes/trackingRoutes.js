@@ -9,12 +9,12 @@ const {
     getSearchHistory,
     trackShare
 } = require('../controllers/trackingController');
-const { protect } = require('../middleware/authMiddleware');
+const { protect, optionalAuth } = require('../middleware/authMiddleware');
 
-// Public tracking (can work without auth)
-router.post('/search', trackSearch);
-router.post('/activity', trackActivity);
-router.post('/share/:listingId', trackShare);
+// Public tracking (works for guests; attributes events to the user when logged in)
+router.post('/search', optionalAuth, trackSearch);
+router.post('/activity', optionalAuth, trackActivity);
+router.post('/share/:listingId', optionalAuth, trackShare);
 
 // Protected routes
 router.get('/search-history', protect, getSearchHistory);

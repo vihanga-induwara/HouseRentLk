@@ -11,6 +11,7 @@ import { toast } from 'react-hot-toast';
 import { formatCurrency } from '../utils/format';
 import { NO_IMAGE_PLACEHOLDER } from '../utils/constants';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import PlatformAnalytics from '../components/admin/PlatformAnalytics';
 
 
 const AdminDashboard = () => {
@@ -109,17 +110,16 @@ const AdminDashboard = () => {
     const handleVerificationReview = async (userId, status, message) => {
         try {
             await API.put(`/verification/${userId}`, { status, message });
-            toast.success(`Verification ${status} successfully`);
-            fetchData();
-        } catch {
-            toast.error('Failed to update verification status');
+            toast.success(status === 'verified' ? 'Verification approved' : 'Verification rejected');
+            fetchData(true);
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Failed to update verification status');
         }
     };
 
     const handleReportStatus = async (id, status) => {
         if (actionLoading[id]) return;
 
-        console.log(`[DEBUG] Attempting to update report ${id} to ${status}`);
         setActionLoading(prev => ({ ...prev, [id]: true }));
 
         try {
@@ -610,19 +610,21 @@ const AdminDashboard = () => {
                                             </div>
                                         </div>
                                         <div className="space-y-3">
-                                            <div className="text-xs text-slate-500 uppercase font-bold tracking-wider">NIC Front</div>
-                                            <img src={v.verification?.nicFront} className="rounded-lg border border-slate-200 cursor-pointer hover:opacity-90 w-full" alt="NIC Front" onClick={() => window.open(v.verification.nicFront, '_blank')} />
-                                            <div className="text-xs text-slate-500 uppercase font-bold tracking-wider">NIC Back</div>
-                                            <img src={v.verification?.nicBack} className="rounded-lg border border-slate-200 cursor-pointer hover:opacity-90 w-full" alt="NIC Back" onClick={() => window.open(v.verification.nicBack, '_blank')} />
-                                        </div>
-                                        <div className="mt-4 pt-4 border-t border-slate-200">
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-[10px] font-bold text-slate-400 uppercase">AI confidence Score</span>
-                                                <span className="text-xs font-black text-primary-600">88%</span>
-                                            </div>
-                                            <div className="mt-2 h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                                                <div className="h-full bg-primary-600 rounded-full" style={{ width: '88%' }}></div>
-                                            </div>
+                                            {(v.verificationDocs || []).length === 0 && (
+                                                <p className="text-xs text-slate-500">No documents attached.</p>
+                                            )}
+                                            {(v.verificationDocs || []).map((doc, i) => (
+                                                <div key={doc._id || i}>
+                                                    <div className="text-xs text-slate-500 uppercase font-bold tracking-wider mb-1">{doc.type} — document {i + 1}</div>
+                                                    {doc.url ? (
+                                                        <a href={doc.url} target="_blank" rel="noopener noreferrer">
+                                                            <img src={doc.url} className="rounded-lg border border-slate-200 hover:opacity-90 w-full" alt={`${doc.type} document ${i + 1} of ${v.name}`} />
+                                                        </a>
+                                                    ) : (
+                                                        <p className="text-xs text-red-500">Document unavailable</p>
+                                                    )}
+                                                </div>
+                                            ))}
                                         </div>
                                     </div>
                                     <div className="p-6 flex-grow flex flex-col justify-between">
@@ -637,7 +639,7 @@ const AdminDashboard = () => {
                                         </div>
                                         <div className="mt-6 flex gap-3">
                                             <button
-                                                onClick={() => handleVerificationReview(v._id, 'approved', document.getElementById(`msg-${v._id}`).value)}
+                                                onClick={() => handleVerificationReview(v._id, 'verified', document.getElementById(`msg-${v._id}`).value)}
                                                 className="flex-grow py-3 bg-green-600 text-white font-bold rounded-xl hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
                                             >
                                                 <Check className="h-5 w-5" /> Approve
@@ -658,56 +660,7 @@ const AdminDashboard = () => {
             )}
 
             {/* Analytics Tab */}
-            {activeTab === 'analytics' && (
-                <div className="space-y-8">
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                        {/* Heatmap Section */}
-                        <div className="lg:col-span-2 bg-white p-8 rounded-[2.5rem] shadow-xl border border-slate-100">
-                            <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest mb-8">Platform Demand Heatmap</h3>
-                            <div className="space-y-6">
-                                {['Colombo 03', 'Dehiwala', 'Negombo', 'Gampaha', 'Kandy'].map((town, i) => (
-                                    <div key={town} className="group">
-                                        <div className="flex justify-between items-center mb-2">
-                                            <span className="text-xs font-black text-slate-700">{town}</span>
-                                            <span className="text-[10px] font-bold text-slate-400">Demand: {90 - i * 10}%</span>
-                                        </div>
-                                        <div className="h-4 w-full bg-slate-50 rounded-full overflow-hidden border border-slate-100">
-                                            <div
-                                                className="h-full bg-gradient-to-r from-primary-400 to-primary-600 transition-all duration-1000"
-                                                style={{ width: `${90 - i * 10}%` }}
-                                            ></div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Stats Summary */}
-                        <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white shadow-2xl">
-                            <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-8">Pulse Statistics</h3>
-                            <div className="space-y-8">
-                                <div>
-                                    <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Growth Rate</p>
-                                    <p className="text-3xl font-black text-primary-400">+12.4% MoM</p>
-                                </div>
-                                <div className="pt-8 border-t border-white/10">
-                                    <p className="text-[10px] text-slate-500 uppercase font-bold mb-4">Recommendations</p>
-                                    <ul className="space-y-4">
-                                        <li className="text-xs flex items-start gap-3">
-                                            <div className="w-1.5 h-1.5 rounded-full bg-primary-500 mt-1"></div>
-                                            <p className="text-slate-300">Increase supply in highly active hubs</p>
-                                        </li>
-                                        <li className="text-xs flex items-start gap-3">
-                                            <div className="w-1.5 h-1.5 rounded-full bg-primary-500 mt-1"></div>
-                                            <p className="text-slate-300">Owner verification incentive needed in new towns</p>
-                                        </li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
+            {activeTab === 'analytics' && <PlatformAnalytics />}
 
             {/* Disputes Tab */}
             {activeTab === 'disputes' && (

@@ -6,6 +6,10 @@ const Review = require('../models/Review');
 const Inquiry = require('../models/Inquiry');
 const Favorite = require('../models/Favorite');
 const Report = require('../models/Report');
+const Notification = require('../models/Notification');
+const SavedSearch = require('../models/SavedSearch');
+const Session = require('../models/Session');
+const BudgetPlan = require('../models/BudgetPlan');
 
 // @desc    Get all users
 // @route   GET /api/admin/users
@@ -66,6 +70,11 @@ const getUserDetails = asyncHandler(async (req, res) => {
 const updateUserStatus = asyncHandler(async (req, res) => {
     const { status } = req.body; // 'active', 'inactive', 'suspended', 'blocked'
 
+    if (req.user.id === req.params.id) {
+        res.status(400);
+        throw new Error('You cannot change your own account status');
+    }
+
     const user = await User.findById(req.params.id);
 
     if (!user) {
@@ -92,8 +101,13 @@ const updateUser = asyncHandler(async (req, res) => {
         throw new Error('User not found');
     }
 
+    if (req.user.id === req.params.id && ((role !== undefined && role !== 'admin') || (status !== undefined && status !== 'active'))) {
+        res.status(400);
+        throw new Error('You cannot remove your own admin access');
+    }
+
     if (name !== undefined) user.name = name;
-    if (email !== undefined) user.email = email;
+    if (email !== undefined) user.email = String(email).toLowerCase().trim();
     if (role !== undefined) user.role = role;
     if (status !== undefined) user.status = status;
     if (phone !== undefined) user.phone = phone;
@@ -110,6 +124,11 @@ const updateUser = asyncHandler(async (req, res) => {
 // @route   DELETE /api/admin/users/:id
 // @access  Private (Admin)
 const deleteUser = asyncHandler(async (req, res) => {
+    if (req.user.id === req.params.id) {
+        res.status(400);
+        throw new Error('You cannot delete your own account');
+    }
+
     const user = await User.findById(req.params.id);
 
     if (!user) {
@@ -138,8 +157,12 @@ const deleteUser = asyncHandler(async (req, res) => {
         Booking.deleteMany({ renter: req.params.id }),
         Review.deleteMany({ reviewer: req.params.id }),
         Inquiry.deleteMany({ sender: req.params.id }),
-        Favorite.deleteMany({ userId: req.params.id }), // Assuming userId in Favorite
-        Report.deleteMany({ reporter: req.params.id })
+        Favorite.deleteMany({ userId: req.params.id }),
+        Report.deleteMany({ reporter: req.params.id }),
+        Notification.deleteMany({ user: req.params.id }),
+        SavedSearch.deleteMany({ user: req.params.id }),
+        Session.deleteMany({ userId: req.params.id }),
+        BudgetPlan.deleteMany({ user: req.params.id }),
     ]);
 
     await user.deleteOne();
@@ -151,20 +174,23 @@ const deleteUser = asyncHandler(async (req, res) => {
 // @route   GET /api/admin/stats
 // @access  Private (Admin)
 const getStats = asyncHandler(async (req, res) => {
-    const totalUsers = await User.countDocuments();
-    const totalListings = await Listing.countDocuments();
-    const pendingListings = await Listing.countDocuments({ status: 'pending' });
-    const approvedListings = await Listing.countDocuments({ status: 'approved' });
-
-    // Users by role
-    const renters = await User.countDocuments({ role: 'renter' });
-    const owners = await User.countDocuments({ role: 'owner' });
-    const brokers = await User.countDocuments({ role: 'broker' });
-
     // Recent registrations (last 7 days)
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    const newUsers = await User.countDocuments({ createdAt: { $gte: sevenDaysAgo } });
+
+    const [
+        totalUsers, totalListings, pendingListings, approvedListings,
+        renters, owners, brokers, newUsers,
+    ] = await Promise.all([
+        User.countDocuments(),
+        Listing.countDocuments(),
+        Listing.countDocuments({ status: 'pending' }),
+        Listing.countDocuments({ status: 'approved' }),
+        User.countDocuments({ role: 'renter' }),
+        User.countDocuments({ role: 'owner' }),
+        User.countDocuments({ role: 'broker' }),
+        User.countDocuments({ createdAt: { $gte: sevenDaysAgo } }),
+    ]);
 
     res.status(200).json({
         totalUsers,
@@ -196,12 +222,10 @@ const getReports = asyncHandler(async (req, res) => {
 // @access  Private (Admin)
 const updateReportStatus = asyncHandler(async (req, res) => {
     const { status } = req.body; // 'reviewed', 'dismissed'
-    console.log(`[DEBUG] Updating report ${req.params.id} to status: ${status}`);
 
     const report = await Report.findById(req.params.id);
 
     if (!report) {
-        console.error(`[ERROR] Report ${req.params.id} not found`);
         res.status(404);
         throw new Error('Report not found');
     }
@@ -209,7 +233,6 @@ const updateReportStatus = asyncHandler(async (req, res) => {
     report.status = status;
     await report.save();
 
-    console.log(`[SUCCESS] Report ${req.params.id} updated to ${status}`);
     res.status(200).json({ message: `Report status updated to ${status} successfully`, report });
 });
 

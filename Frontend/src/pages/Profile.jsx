@@ -135,11 +135,12 @@ const Profile = () => {
             const uploadData = new FormData();
             nicFiles.forEach(file => uploadData.append('images', file));
 
-            const { data: imageUrls } = await API.post('/upload/multiple', uploadData, {
+            // Identity documents go to private storage; only admins can view them
+            const { data: uploaded } = await API.post('/upload/verification-docs', uploadData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
 
-            const docs = imageUrls.map(url => ({ type: 'NIC', url }));
+            const docs = uploaded.map(({ publicId }) => ({ type: 'NIC', publicId }));
 
             await API.post('/verification', { docs });
 
@@ -289,7 +290,7 @@ const Profile = () => {
                                                 </>
                                             )}
                                         </div>
-                                        <input type="file" className="hidden" onChange={handleNicUpload} multiple accept="image/*" />
+                                        <input type="file" className="hidden" onChange={handleNicUpload} multiple accept="image/jpeg,image/png,image/webp" />
                                     </label>
 
                                     <Button
@@ -361,10 +362,6 @@ const Profile = () => {
                                                     <p className="font-black text-slate-900 group-hover:text-primary-600 transition-colors uppercase tracking-tight">{follower.name}</p>
                                                     <p className="text-[10px] text-slate-500 font-medium">Joined {new Date(follower.createdAt).toLocaleDateString()}</p>
                                                 </div>
-                                            </div>
-                                            <div className="flex flex-col items-end">
-                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{follower.phone || 'No Phone'}</p>
-                                                <p className="text-[10px] text-slate-400 truncate max-w-[120px]">{follower.email}</p>
                                             </div>
                                         </div>
                                     ))}

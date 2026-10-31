@@ -19,6 +19,12 @@ const {
     getActivitySummary
 } = require('../controllers/adminAnalyticsController');
 const { protect, authorize } = require('../middleware/authMiddleware');
+const { validate } = require('../middleware/validateMiddleware');
+const {
+    adminListingStatusSchema,
+    adminUserStatusSchema,
+    adminReportStatusSchema,
+} = require('../validations/commonValidation');
 
 // All routes are protected and require admin role
 router.use(protect);
@@ -26,7 +32,7 @@ router.use(authorize('admin'));
 
 // Listing Management
 router.get('/listings', getAdminListings);
-router.put('/listings/:id/status', updateListingStatus);
+router.put('/listings/:id/status', validate(adminListingStatusSchema), updateListingStatus);
 
 // User Management
 router.get('/users', getUsers);
@@ -34,7 +40,7 @@ router.route('/users/:id')
     .get(getUserDetails)
     .put(updateUser)
     .delete(deleteUser);
-router.put('/users/:id/status', updateUserStatus);
+router.put('/users/:id/status', validate(adminUserStatusSchema), updateUserStatus);
 
 // Dashboard Stats
 router.get('/stats', getStats);
@@ -43,6 +49,6 @@ router.get('/activity-summary', getActivitySummary);
 
 // Report Management
 router.get('/reports', getReports);
-router.put('/reports/:id/status', updateReportStatus);
+router.put('/reports/:id/status', validate(adminReportStatusSchema), updateReportStatus);
 
 module.exports = router;

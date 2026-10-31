@@ -9,14 +9,16 @@ const {
     closeInquiry,
 } = require('../controllers/inquiryController');
 const { protect } = require('../middleware/authMiddleware');
+const { validate } = require('../middleware/validateMiddleware');
+const { sendInquirySchema, replyInquirySchema } = require('../validations/commonValidation');
 
 router.use(protect);
 
-router.post('/', sendInquiry);
+router.post('/', validate(sendInquirySchema), sendInquiry);
 router.get('/received', getReceivedInquiries);
 router.get('/sent', getSentInquiries);
 router.get('/:id', getInquiry);
-router.post('/:id/reply', replyToInquiry);
+router.post('/:id/reply', validate(replyInquirySchema), replyToInquiry);
 router.put('/:id/close', closeInquiry);
 
 module.exports = router;

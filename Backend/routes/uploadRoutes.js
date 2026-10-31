@@ -49,6 +49,26 @@ const upload = multer({
   fileFilter
 });
 
+// Identity documents: stored as "authenticated" assets, so they are only reachable
+// through signed URLs generated for admins (see verificationController).
+const verificationUpload = multer({
+  storage: new CloudinaryStorage({
+    cloudinary,
+    params: async () => ({
+      folder: 'house_rent_lk_kyc',
+      type: 'authenticated',
+      resource_type: 'image',
+      allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
+      public_id: `${Date.now()}-${crypto.randomBytes(16).toString('hex')}`,
+    }),
+  }),
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+  fileFilter: (req, file, cb) => {
+    const ok = ['image/jpeg', 'image/png', 'image/webp'].includes(file.mimetype);
+    cb(ok ? null : new Error('Only JPG, PNG or WEBP images are allowed'), ok);
+  },
+});
+
 // Turn multer errors (size, count, type) into 400 responses
 const handleUpload = (middleware) => (req, res, next) => {
   middleware(req, res, (err) => {
@@ -79,6 +99,17 @@ router.post('/multiple', protect, handleUpload(upload.array('images', 10)), (req
   }
   const paths = req.files.map((file) => file.path);
   res.send(paths);
+});
+
+// @desc    Upload identity documents (private)
+// @route   POST /api/upload/verification-docs
+// @access  Private
+router.post('/verification-docs', protect, handleUpload(verificationUpload.array('images', 4)), (req, res) => {
+  if (!req.files || req.files.length === 0) {
+    return res.status(400).json({ message: 'No files uploaded' });
+  }
+  // Return only the asset ids; the files are not publicly viewable
+  res.json(req.files.map((file) => ({ publicId: file.filename })));
 });
 
 module.exports = router;

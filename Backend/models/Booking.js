@@ -1,5 +1,9 @@
 const mongoose = require('mongoose');
 
+const BOOKING_STATUSES = ['pending', 'confirmed', 'rejected', 'completed', 'cancelled'];
+// Statuses that still occupy the time slot
+const ACTIVE_STATUSES = ['pending', 'confirmed'];
+
 const bookingSchema = new mongoose.Schema({
     listing: {
         type: mongoose.Schema.Types.ObjectId,
@@ -22,21 +26,39 @@ const bookingSchema = new mongoose.Schema({
     },
     timeSlot: {
         type: String,
-        required: true
+        required: true,
+        maxlength: 50
     },
     status: {
         type: String,
-        enum: ['pending', 'confirmed', 'rejected', 'completed', 'cancelled'],
+        enum: BOOKING_STATUSES,
         default: 'pending'
     },
-    message: String,
-    notes: String
+    // Maintained from status so the unique index only covers live bookings
+    isActive: {
+        type: Boolean,
+        default: true
+    },
+    message: { type: String, maxlength: 500 },
+    notes: { type: String, maxlength: 500 }
 }, {
     timestamps: true
 });
 
-// Prevent double bookings: A listing cannot be booked for the same date & time slot twice
-bookingSchema.index({ listing: 1, date: 1, timeSlot: 1 }, { unique: true });
+bookingSchema.pre('save', function () {
+    this.isActive = ACTIVE_STATUSES.includes(this.status);
+});
 
+// Prevent double bookings of a live slot; cancelled/rejected slots can be booked again.
+// Run `npm run db:sync-indexes` once to replace the old index that also blocked cancelled slots.
+bookingSchema.index(
+    { listing: 1, date: 1, timeSlot: 1 },
+    { unique: true, partialFilterExpression: { isActive: true }, name: 'unique_active_slot' }
+);
+bookingSchema.index({ owner: 1, createdAt: -1 });
+bookingSchema.index({ renter: 1, createdAt: -1 });
 
-module.exports = mongoose.model('Booking', bookingSchema);
+const Booking = mongoose.model('Booking', bookingSchema);
+Booking.STATUSES = BOOKING_STATUSES;
+
+module.exports = Booking;

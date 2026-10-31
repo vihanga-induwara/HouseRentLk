@@ -100,6 +100,7 @@ app.use('/api/settings', require('./routes/settingsRoutes'));
 app.use('/api/scraping', require('./routes/scrapingRoutes'));
 app.use('/api/pages', require('./routes/pageRoutes'));
 app.use('/api/budget-plans', require('./routes/budgetPlanRoutes'));
+app.use('/api/contact', require('./routes/contactRoutes'));
 
 const path = require('path');
 app.use('/uploads', express.static(path.join(__dirname, '/uploads')));
@@ -117,4 +118,7 @@ const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
+    if (process.env.NODE_ENV !== 'test') {
+        require('./jobs/scheduler').startScheduler();
+    }
 });

@@ -27,19 +27,21 @@ const {
     getSimilarListings,
     reportListing,
 } = require('../controllers/listingController');
-const { protect, authorize } = require('../middleware/authMiddleware');
+const { protect, optionalAuth } = require('../middleware/authMiddleware');
+const { validate } = require('../middleware/validateMiddleware');
+const { reportListingSchema } = require('../validations/commonValidation');
 
 // Static routes (must be before /:id to avoid conflict)
 router.get('/my-listings', protect, getMyListings);
 router.post('/bulk-upload', protect, upload.single('file'), bulkUploadListings);
-router.post('/report', protect, reportListing);
+router.post('/report', protect, validate(reportListingSchema), reportListing);
 
 router.route('/')
     .get(getListings)
     .post(protect, createListing);
 
 router.route('/:id')
-    .get(getListing)
+    .get(optionalAuth, getListing)
     .put(protect, updateListing)
     .delete(protect, deleteListing);
 

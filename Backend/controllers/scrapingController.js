@@ -192,9 +192,28 @@ const triggerScrape = asyncHandler(async (req, res) => {
         throw new Error('No enabled sources found');
     }
 
-    // Create job record
-    const job = await ScrapeJob.create({
+    const job = await startScrapeJob({
+        sources,
         triggeredBy: req.user.id,
+        type,
+        location,
+        priceMin,
+        priceMax,
+        maxPages,
+    });
+
+    res.status(202).json({
+        message: 'Scrape job started',
+        job,
+    });
+});
+
+// Create a job record and run the scrapers in the background. Used by the admin
+// trigger endpoint and by the scheduler (jobs/scheduler.js).
+const startScrapeJob = async ({ sources, triggeredBy, type, location, priceMin, priceMax, maxPages, isScheduled = false }) => {
+    const job = await ScrapeJob.create({
+        triggeredBy,
+        isScheduled,
         sources: sources.map(s => s.slug),
         type: type || 'incremental',
         status: 'running',
@@ -336,13 +355,10 @@ const triggerScrape = asyncHandler(async (req, res) => {
                 await source.save();
             }
         }
-    })();
+    })().catch(err => console.error('[Scraper] Job bookkeeping failed:', err.message));
 
-    res.status(202).json({
-        message: 'Scrape job started',
-        job,
-    });
-});
+    return job;
+};
 
 // Helper: get local listing stats for a town
 async function getLocalStats(town) {
@@ -893,6 +909,8 @@ const trackClickThrough = asyncHandler(async (req, res) => {
 module.exports = {
     // Sources
     getSources, addSource, updateSource, toggleSource, killSource, deleteSource,
+    // Used by jobs/scheduler.js
+    startScrapeJob,
     // Jobs
     triggerScrape, getJobs, getJobDetail, stopJob,
     // Listings
