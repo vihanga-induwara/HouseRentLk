@@ -305,13 +305,9 @@ const Register = () => {
             const result = await register(userData);
 
             if (result.success) {
-                // Remove duplicate toast because AuthContext already toasts "Registration successful!"
-                const redirectUser = result.user || JSON.parse(localStorage.getItem('user'));
-                if (redirectUser?.role === 'admin') {
-                    navigate('/admin');
-                } else {
-                    navigate('/');
-                }
+                // AuthContext already toasts "Registration successful!"
+                toast(`We sent a verification link to ${email}. Verify it to start posting ads.`, { icon: '📧', duration: 6000 });
+                navigate(role === 'renter' ? '/' : '/profile');
             }
             // We do NOT show a fail toast here because AuthContext handles the precise backend error toast.
         } catch (error) {

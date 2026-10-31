@@ -29,6 +29,9 @@ import SafetyTips from './pages/SafetyTips';
 import AboutUs from './pages/AboutUs';
 import Contact from './pages/Contact';
 import NotFound from './pages/NotFound';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
+import VerifyEmail from './pages/VerifyEmail';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { Toaster } from 'react-hot-toast';
@@ -49,6 +52,9 @@ function App() {
               <Route path="/compare" element={<CompareListings />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password/:token" element={<ResetPassword />} />
+              <Route path="/verify-email/:token" element={<VerifyEmail />} />
               <Route path="/brokers" element={<Brokers />} />
               <Route path="/brokers/:id" element={<BrokerProfile />} />
               <Route path="/rent-planner" element={<RentBudgetPlannerPage />} />

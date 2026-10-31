@@ -4,6 +4,8 @@ import API from '../utils/api';
 import Input from '../components/Input';
 import Button from '../components/Button';
 import { toast } from 'react-hot-toast';
+import ContactVerification from '../components/profile/ContactVerification';
+import ChangePassword from '../components/profile/ChangePassword';
 import {
     User, Mail, Phone, Camera, Save, ShieldCheck,
     FileText, AlertCircle, Upload, Heart, MapPin,
@@ -11,7 +13,7 @@ import {
 } from 'lucide-react';
 
 const Profile = () => {
-    const { user } = useAuth();
+    const { user, updateUser, refreshUser } = useAuth();
     const [loading, setLoading] = useState(false);
     const [uploadingAvatar, setUploadingAvatar] = useState(false);
     const [formData, setFormData] = useState({
@@ -103,9 +105,9 @@ const Profile = () => {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
 
-            await API.put('/auth/profile', { avatar: imageUrls[0] });
+            const { data } = await API.put('/auth/profile', { avatar: imageUrls[0] });
+            updateUser(data);
             toast.success('Avatar updated!');
-            window.location.reload();
         } catch {
             toast.error('Avatar upload failed');
         } finally {
@@ -142,7 +144,9 @@ const Profile = () => {
             await API.post('/verification', { docs });
 
             toast.success('Verification submitted successfully!');
-            setTimeout(() => window.location.reload(), 1500);
+            setNicFiles([]);
+            setNicPreviews([]);
+            await refreshUser();
         } catch (error) {
             toast.error(error.response?.data?.message || 'Submission failed');
         } finally {
@@ -156,13 +160,13 @@ const Profile = () => {
         setLoading(true);
 
         try {
-            const { data } = await API.put('/auth/profile', formData);
+            const { name, phone, bio } = formData;
+            const { data } = await API.put('/auth/profile', { name, phone, bio });
             if (user.role === 'renter') {
                 await API.put('/matching/profile', renterProfile);
             }
-            localStorage.setItem('user', JSON.stringify(data));
+            updateUser(data);
             toast.success('Profile updated successfully!');
-            setTimeout(() => window.location.reload(), 1500);
         } catch (error) {
             toast.error(error.response?.data?.message || 'Update failed');
         } finally {
@@ -241,7 +245,9 @@ const Profile = () => {
                         </div>
                     </div>
 
-                    {/* Verification Card (ID) - Keeping existing logic, just improved text */}
+                    <ContactVerification />
+
+                    {/* Verification Card (ID) */}
                     <div className="bg-white p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100">
                         <div className="flex items-center gap-3 mb-6">
                             <div className="p-2 bg-primary-100 rounded-xl">
@@ -428,6 +434,8 @@ const Profile = () => {
                             </div>
                         </form>
                     </div>
+
+                    <ChangePassword />
 
                     {/* Renter Matching Preferences */}
                     {user?.role === 'renter' && (
