@@ -3,6 +3,8 @@ compatibility_date = "2024-03-20"
 
 [assets]
 directory = "./Frontend/dist"
+# Serve index.html for client-side routes such as /listings/123 (React Router)
+not_found_handling = "single-page-application"
 
 [build]
-command = "cd Frontend && npm install && npm run build"
+command = "cd Frontend && npm ci && npm run build"

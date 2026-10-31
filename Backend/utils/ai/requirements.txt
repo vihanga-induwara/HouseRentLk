@@ -1,3 +1,5 @@
-fastapi==0.110.0
-uvicorn==0.27.1
-pydantic==2.6.4
+# Runtime dependencies for the AI scripts (utils/ai) and scrapers (utils/scrapers).
+# The AI scripts themselves only use the standard library.
+requests==2.32.3
+beautifulsoup4==4.12.3
+lxml==5.3.0
