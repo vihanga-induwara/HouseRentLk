@@ -85,9 +85,9 @@ const ListingDetail = () => {
             ]).then(results => {
                 const [reviews, insights, similar, fairness, sentiment, safety] = results;
 
-                if (reviews.status === 'fulfilled') setReviews(reviews.value.data);
+                if (reviews.status === 'fulfilled' && Array.isArray(reviews.value.data)) setReviews(reviews.value.data);
                 if (insights.status === 'fulfilled') setMarketInsight(insights.value.data);
-                if (similar.status === 'fulfilled') setSimilarListings(similar.value.data);
+                if (similar.status === 'fulfilled' && Array.isArray(similar.value.data)) setSimilarListings(similar.value.data);
                 if (fairness.status === 'fulfilled') setPriceFairness(fairness.value.data);
                 if (sentiment.status === 'fulfilled') setReviewSentiment(sentiment.value.data);
                 if (safety.status === 'fulfilled') setAreaSafety(safety.value.data);

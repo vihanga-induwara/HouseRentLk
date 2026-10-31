@@ -44,7 +44,7 @@ vi.mock('react-hot-toast', () => ({
 // Mock Auth
 vi.mock('../context/AuthContext', () => ({
     useAuth: () => ({
-        user: { _id: '123', name: 'Test User' },
+        user: { _id: '123', name: 'Test User', isEmailVerified: true },
         isFavorite: () => false,
         toggleFavorite: vi.fn(),
     }),

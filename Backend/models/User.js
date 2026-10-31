@@ -125,12 +125,12 @@ userSchema.pre('save', async function () {
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
     if (!this.isNew) {
-        // Back-date by 1s so a token issued right after the change stays valid
-        this.passwordChangedAt = new Date(Date.now() - 1000);
+        this.passwordChangedAt = new Date();
     }
 });
 
-// True if the password changed after the given JWT "issued at" (seconds)
+// True if the password changed after the given JWT "issued at" (seconds). Compared in
+// whole seconds, so the token re-issued in the same request as the change stays valid.
 userSchema.methods.changedPasswordAfter = function (jwtIat) {
     if (!this.passwordChangedAt) return false;
     return Math.floor(this.passwordChangedAt.getTime() / 1000) > jwtIat;

@@ -1,10 +1,11 @@
 module.exports = {
     testEnvironment: 'node',
-    testMatch: ['**/tests/**/*.test.js'],
+    // Unit tests only; database integration tests run with `node --test` (see package.json)
+    testMatch: ['<rootDir>/tests/*.test.js'],
+    setupFiles: ['./tests/env.js'],
     setupFilesAfterEnv: ['./tests/setup.js'],
     verbose: true,
-    forceExit: true,
     clearMocks: true,
-    resetMocks: true,
     restoreMocks: true,
+    collectCoverageFrom: ['controllers/**/*.js', 'middleware/**/*.js', 'services/**/*.js', 'validations/**/*.js', 'jobs/**/*.js'],
 };

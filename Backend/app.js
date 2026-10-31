@@ -100,6 +100,7 @@ const limiter = (windowMinutes, max, message) => rateLimit({
     standardHeaders: true,
     legacyHeaders: false,
     message: { message },
+    skip: () => process.env.NODE_ENV === 'test',
 });
 
 app.use('/api', limiter(15, Number(process.env.RATE_LIMIT_MAX || 1000), 'Too many requests, please try again in a few minutes'));

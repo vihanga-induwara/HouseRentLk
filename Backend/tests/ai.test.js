@@ -1,19 +1,22 @@
-const { getSuggestedPrice, generateTitle } = require('../controllers/aiController');
-const aiService = require('../services/aiService');
+jest.mock('../services/aiService', () => ({ executeScript: jest.fn() }));
+jest.mock('../models/Review', () => ({ find: jest.fn() }));
 
-jest.mock('../services/aiService');
+const { getSuggestedPrice, generateTitle, getReviewSentiment } = require('../controllers/aiController');
+const aiService = require('../services/aiService');
+const Review = require('../models/Review');
+
+const mockRes = () => ({
+    status: jest.fn().mockReturnThis(),
+    json: jest.fn(),
+});
 
 describe('AI Controller', () => {
     let req, res, next;
 
     beforeEach(() => {
-        req = { query: {}, body: {} };
-        res = {
-            status: jest.fn().mockReturnThis(),
-            json: jest.fn(),
-        };
+        req = { query: {}, body: {}, params: {} };
+        res = mockRes();
         next = jest.fn();
-        jest.clearAllMocks();
     });
 
     describe('getSuggestedPrice', () => {
@@ -32,7 +35,7 @@ describe('AI Controller', () => {
         });
 
         it('should return 400 if town is missing', async () => {
-            req.query = { beds: '2' }; // Missing town
+            req.query = { beds: '2' };
 
             await getSuggestedPrice(req, res, next);
 
@@ -58,9 +61,15 @@ describe('AI Controller', () => {
     });
 
     describe('getReviewSentiment', () => {
-        const { getReviewSentiment } = require('../controllers/aiController');
-        const Review = require('../models/Review');
-        jest.mock('../models/Review');
+        it('returns a neutral result when there are no reviews', async () => {
+            req.params = { listingId: 'listing123' };
+            Review.find.mockReturnValue({ select: jest.fn().mockResolvedValue([]) });
+
+            await getReviewSentiment(req, res, next);
+
+            expect(aiService.executeScript).not.toHaveBeenCalled();
+            expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ overallLabel: 'neutral' }));
+        });
 
         it('should return review sentiment for a listing', async () => {
             req.params = { listingId: 'listing123' };
@@ -68,31 +77,20 @@ describe('AI Controller', () => {
                 { _id: 'r1', comment: 'Great place!', rating: 5 },
                 { _id: 'r2', comment: 'Too noisy.', rating: 2 }
             ];
-
-            // Mock Review.find().select()
-            const selectMock = jest.fn().mockResolvedValue(mockReviews);
-            const findMock = jest.spyOn(Review, 'find').mockReturnValue({
-                select: selectMock
-            });
-
-            aiService.executeScript.mockResolvedValue({
-                overallScore: 70,
-                reviewSentiments: [
-                    { reviewId: 'r1', score: 90, label: 'positive' },
-                    { reviewId: 'r2', score: 30, label: 'negative' }
-                ]
-            });
+            Review.find.mockReturnValue({ select: jest.fn().mockResolvedValue(mockReviews) });
+            aiService.executeScript.mockResolvedValue({ overallScore: 70 });
 
             await getReviewSentiment(req, res, next);
 
             expect(Review.find).toHaveBeenCalledWith({ listing: 'listing123' });
-            expect(aiService.executeScript).toHaveBeenCalledWith('sentiment_analyzer.py', expect.objectContaining({
-                reviews: expect.arrayContaining([
-                    expect.objectContaining({ _id: 'r1', comment: 'Great place!' })
-                ])
-            }));
+            expect(aiService.executeScript).toHaveBeenCalledWith('sentiment_analyzer.py', {
+                reviews: [
+                    { _id: 'r1', comment: 'Great place!', rating: 5 },
+                    { _id: 'r2', comment: 'Too noisy.', rating: 2 }
+                ]
+            });
             expect(res.status).toHaveBeenCalledWith(200);
-            expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ overallScore: 70 }));
+            expect(res.json).toHaveBeenCalledWith({ overallScore: 70 });
         });
     });
 });

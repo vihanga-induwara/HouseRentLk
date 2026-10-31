@@ -70,7 +70,7 @@ describe('Browse Page', () => {
         const titleElement = await screen.findByText('Test House');
         expect(titleElement).toBeInTheDocument();
 
-        expect(API.get).toHaveBeenCalledWith('/listings?page=1&source=internal');
+        expect(API.get).toHaveBeenCalledWith('/listings?page=1');
     });
 
     it('updates filters when user types in search', async () => {

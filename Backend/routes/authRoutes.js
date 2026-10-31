@@ -35,6 +35,7 @@ const sensitiveLimiter = rateLimit({
     standardHeaders: true,
     legacyHeaders: false,
     message: { message: 'Too many attempts. Please try again in 15 minutes.' },
+    skip: () => process.env.NODE_ENV === 'test',
 });
 
 router.post('/register', sensitiveLimiter, validate(registerSchema), registerUser);

@@ -12,6 +12,7 @@ const contactLimiter = rateLimit({
     standardHeaders: true,
     legacyHeaders: false,
     message: { message: 'Too many messages. Please try again later.' },
+    skip: () => process.env.NODE_ENV === 'test',
 });
 
 router.post('/', contactLimiter, optionalAuth, validate(contactSchema), sendContactMessage);

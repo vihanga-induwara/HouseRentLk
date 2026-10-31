@@ -22,7 +22,15 @@ const normalizePhone = (raw) => {
     return /^94\d{9}$/.test(digits) ? `+${digits}` : null;
 };
 
+// In tests, messages are collected here instead of being sent
+const outbox = [];
+
 const sendSms = async (to, body) => {
+    if (process.env.NODE_ENV === 'test') {
+        outbox.push({ to, body });
+        return { test: true };
+    }
+
     const sms = getClient();
 
     if (!sms) {
@@ -36,4 +44,4 @@ const sendSms = async (to, body) => {
     return sms.messages.create({ from: process.env.TWILIO_PHONE_NUMBER, to, body });
 };
 
-module.exports = { sendSms, normalizePhone };
+module.exports = { sendSms, normalizePhone, outbox };

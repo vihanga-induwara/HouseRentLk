@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import PostAd from '../PostAd';
 
 // Mock useNavigate
@@ -20,6 +20,11 @@ vi.mock('../../utils/api', () => ({
     }
 }));
 
+let mockUser;
+vi.mock('../../context/AuthContext', () => ({
+    useAuth: () => ({ user: mockUser }),
+}));
+
 // Mock Sub-components to avoid dependency issues (like Leaflet)
 vi.mock('../../components/post-ad/StepType', () => ({ default: () => <div data-testid="step-type">StepType</div> }));
 vi.mock('../../components/post-ad/StepLocation', () => ({ default: () => <div data-testid="step-location">StepLocation</div> }));
@@ -30,18 +35,36 @@ vi.mock('../../components/post-ad/StepMedia', () => ({ default: () => <div data-
 vi.mock('../../components/post-ad/StepContact', () => ({ default: () => <div data-testid="step-contact">StepContact</div> }));
 vi.mock('../../components/post-ad/StepPreview', () => ({ default: () => <div data-testid="step-preview">StepPreview</div> }));
 
+const renderPage = () => render(
+    <BrowserRouter>
+        <PostAd />
+    </BrowserRouter>
+);
+
 describe('PostAd Component', () => {
+    beforeEach(() => {
+        mockUser = { _id: '1', name: 'Owner', isEmailVerified: true };
+    });
+
     it('renders the initial step (StepType) correctly', () => {
-        render(
-            <BrowserRouter>
-                <PostAd />
-            </BrowserRouter>
-        );
+        renderPage();
 
-        // Check that StepType is rendered
         expect(screen.getByTestId('step-type')).toBeInTheDocument();
-
-        // Check that other steps are NOT rendered
         expect(screen.queryByTestId('step-location')).not.toBeInTheDocument();
+    });
+
+    it('asks unverified users to verify before posting', () => {
+        mockUser = { _id: '1', name: 'Owner', isEmailVerified: false, isPhoneVerified: false };
+        renderPage();
+
+        expect(screen.getByText(/Verification Required/i)).toBeInTheDocument();
+        expect(screen.queryByTestId('step-type')).not.toBeInTheDocument();
+    });
+
+    it('lets phone-verified users post', () => {
+        mockUser = { _id: '1', name: 'Owner', isEmailVerified: false, isPhoneVerified: true };
+        renderPage();
+
+        expect(screen.getByTestId('step-type')).toBeInTheDocument();
     });
 });

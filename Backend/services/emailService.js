@@ -25,7 +25,15 @@ const escapeHtml = (str) => String(str)
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
 
+// In tests, messages are collected here instead of being sent
+const outbox = [];
+
 const sendEmail = async ({ to, subject, text, html }) => {
+    if (process.env.NODE_ENV === 'test') {
+        outbox.push({ to, subject, text, html });
+        return { test: true };
+    }
+
     const transport = getTransporter();
 
     if (!transport) {
@@ -60,4 +68,4 @@ const actionEmail = ({ heading, message, actionText, actionUrl }) => ({
         </div>`,
 });
 
-module.exports = { sendEmail, actionEmail, escapeHtml };
+module.exports = { sendEmail, actionEmail, escapeHtml, outbox };

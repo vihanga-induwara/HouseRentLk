@@ -4,7 +4,7 @@ import { formatCurrency } from '../../utils/format';
 import { NO_IMAGE_PLACEHOLDER } from '../../utils/constants';
 
 const ListingSimilar = ({ similarListings }) => {
-    if (!similarListings || similarListings.length === 0) return null;
+    if (!Array.isArray(similarListings) || similarListings.length === 0) return null;
 
     return (
         <div className="pt-16 border-t border-slate-100 dark:border-slate-800">

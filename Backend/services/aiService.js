@@ -100,6 +100,7 @@ class AiService {
             });
 
             pythonProcess.on('close', (code) => {
+                if (settled) return; // already failed (spawn error, timeout, output cap)
                 if (code !== 0) {
                     console.error(`[AiService] Error in ${scriptName}: ${errorString.substring(0, 2000)}`);
                     return finish(reject, new Error(`Script ${scriptName} exited with code ${code}`));
