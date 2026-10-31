@@ -1,0 +1,39 @@
+# Secrets / environment
+.env
+.env.*
+!.env.example
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+dist-ssr/
+build/
+coverage/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# Logs
+logs/
+*.log
+err.txt
+
+# User-uploaded / runtime files (stored in Cloudinary in production)
+uploads/
+
+# Marketing / media projects kept outside the product codebase
+Video/
+output/
+
+# Local tooling
+.claude/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp

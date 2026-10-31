@@ -1,11 +1,26 @@
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
-const Listing = require('./models/Listing');
-const User = require('./models/User');
+const cloudinary = require('cloudinary').v2;
+const path = require('path');
+const Listing = require('../../models/Listing');
+const User = require('../../models/User');
 
-dotenv.config();
+dotenv.config({ path: path.join(__dirname, '../../.env') });
 
-const towns = ['Colombo', 'Kandy', 'Galle', 'Negombo', 'Jaffna', 'Matara', 'Batticaloa', 'Trincomalee', 'Kurunegala', 'Ratnapura'];
+// Demo data only: this script deletes ALL listings before seeding.
+if (process.env.NODE_ENV === 'production') {
+    console.error('Refusing to run demo seed with NODE_ENV=production.');
+    process.exit(1);
+}
+
+// Configuration
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+const towns = ['Colombo', 'Kandy', 'Galle', 'Negombo', 'Jaffna', 'Matara', 'Batticaloa', 'Trincomalee', 'Kurunegala', 'Ratnapura', 'Panadura', 'Kalutara', 'Gampaha', 'Wattala', 'Kiribathgoda', 'Kadawatha', 'Mount Lavinia', 'Dehiwala', 'Nugegoda', 'Kotte', 'Malabe', 'Thalawathugoda', 'Battaramulla', 'Rajagiriya', 'Pita Kotte', 'Ethul Kotte', 'Madiwela'];
 const types = ['House', 'Boarding Room', 'Annex', 'Apartment'];
 const descriptions = [
     'A beautiful place with a great view and a quiet environment.',
@@ -26,15 +41,17 @@ const seedAds = async () => {
         console.log(`MongoDB Connected: ${conn.connection.host}`);
 
         // Find or create a user to be the owner
-        let user = await User.findOne({ email: 'admin@houserentlk.com' });
+        let user = await User.findOne({ email: 'owner@houserentlk.com' });
         if (!user) {
-            console.log('No admin user found. Creating a temporary owner...');
+            if (!process.env.SEED_OWNER_PASSWORD) {
+                throw new Error('SEED_OWNER_PASSWORD must be set to create the demo owner account.');
+            }
+            console.log('Creating demo owner account owner@houserentlk.com...');
             user = await User.create({
-                name: 'System Owner',
+                name: 'Demo Owner',
                 email: 'owner@houserentlk.com',
-                password: 'password123',
+                password: process.env.SEED_OWNER_PASSWORD,
                 role: 'owner',
-                phone: '+94 77 111 2222',
                 isVerified: true
             });
         }
@@ -44,8 +61,9 @@ const seedAds = async () => {
         console.log('Previous listings cleared.');
 
         const ads = [];
+        const imgFolderPath = process.env.SEED_IMAGE_DIR || path.join(__dirname, '../../uploads');
 
-        // List of local images copied to uploads/
+        // Get all unique images from the img folder
         const localImages = [
             'IMG-20240309-WA0002.jpg', 'IMG-20240309-WA0003.jpg', 'IMG-20240309-WA0004.jpg',
             'IMG-20240309-WA0005.jpg', 'IMG-20240309-WA0006.jpg', 'IMG-20240309-WA0007.jpg',
@@ -53,10 +71,24 @@ const seedAds = async () => {
             'IMG-20240309-WA0011.jpg', 'IMG-20240309-WA0012.jpg', 'IMG-20240309-WA0013.jpg',
             'IMG-20240309-WA0014.jpg', 'IMG-20240309-WA0015.jpg', 'IMG-20240309-WA0016.jpg',
             'IMG-20240309-WA0017.jpg', 'IMG-20240309-WA0018.jpg', 'IMG-20240309-WA0019.jpg',
-            'IMG-20240309-WA0020.jpg', 'IMG-20240309-WA0021.jpg'
+            'IMG-20240309-WA0020.jpg', 'IMG-20240309-WA0021.jpg', 'IMG-20240309-WA0022.jpg',
+            'IMG-20240309-WA0023.jpg', 'IMG-20240309-WA0024.jpg', 'IMG-20240309-WA0025.jpg',
+            'IMG-20240309-WA0026.jpg', 'IMG-20240309-WA0027.jpg', 'IMG-20240309-WA0028.jpg'
         ];
 
-        for (let i = 1; i <= 20; i++) {
+        console.log(`Starting upload of 27 images to Cloudinary...`);
+
+        for (let i = 0; i < 27; i++) {
+            const imageName = localImages[i];
+            const imagePath = path.join(imgFolderPath, imageName);
+
+            console.log(`Uploading [${i + 1}/27]: ${imageName}...`);
+
+            // Upload to Cloudinary
+            const uploadResult = await cloudinary.uploader.upload(imagePath, {
+                folder: 'house_rent_lk_seeds',
+            });
+
             const town = towns[i % towns.length];
             const type = types[i % types.length];
             const price = 25000 + (Math.floor(Math.random() * 20) * 5000);
@@ -69,9 +101,6 @@ const seedAds = async () => {
             createdAt.setDate(createdAt.getDate() - Math.floor(Math.random() * 15));
             createdAt.setHours(createdAt.getHours() - Math.floor(Math.random() * 24));
 
-            // Pick a random image from the local set
-            const selectedImage = localImages[i % localImages.length];
-
             ads.push({
                 owner: user._id,
                 title: `${type} in ${town} - ${beds} Bedroom`,
@@ -79,8 +108,8 @@ const seedAds = async () => {
                 type: type,
                 location: {
                     town: town,
-                    street: `${i}th Main Street`,
-                    address: `${i * 10}, ${town} Road, ${town}`,
+                    street: `${i + 1}th Main Street`,
+                    address: `${(i + 1) * 10}, ${town} Road, ${town}`,
                     coordinates: {
                         type: 'Point',
                         coordinates: [79.8612 + (Math.random() * 0.1), 6.9271 + (Math.random() * 0.1)]
@@ -99,14 +128,14 @@ const seedAds = async () => {
                     petsAllowed: i % 4 === 0,
                     security: i % 5 === 0
                 },
-                images: [`/uploads/${selectedImage}`],
+                images: [uploadResult.secure_url],
                 status: 'approved',
                 createdAt: createdAt
             });
         }
 
         await Listing.insertMany(ads);
-        console.log('Successfully seeded 20 house ads with local images.');
+        console.log('Successfully uploaded 27 images and seeded 27 house ads.');
 
         process.exit();
     } catch (error) {
