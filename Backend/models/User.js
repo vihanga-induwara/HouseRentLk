@@ -104,6 +104,12 @@ const userSchema = mongoose.Schema(
     }
 );
 
+userSchema.index({ following: 1 }); // followers lookup, new-listing notifications
+userSchema.index({ role: 1, status: 1 }); // broker directory, admin lists
+userSchema.index({ verificationStatus: 1 }); // pending ID verifications
+userSchema.index({ emailVerificationToken: 1 }, { sparse: true });
+userSchema.index({ passwordResetToken: 1 }, { sparse: true });
+
 // Never serialise secrets, whatever the query selected
 const SECRET_FIELDS = [
     'password', 'emailVerificationToken', 'emailVerificationExpires', 'phoneOtpHash',

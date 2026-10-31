@@ -1,3 +1,4 @@
+import { toast } from 'react-hot-toast';
 import React, { useState, useEffect } from 'react';
 import { Search, ShieldCheck, ArrowRight, User } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -16,11 +17,11 @@ const Brokers = () => {
         const fetchBrokers = async () => {
             setLoading(true);
             try {
-                const { data } = await API.get(`/users/brokers?name=${searchTerm}&page=${page}`);
+                const { data } = await API.get('/users/brokers', { params: { name: searchTerm || undefined, page } });
                 setBrokers(data.data);
                 setTotalPages(data.pages);
-            } catch (error) {
-                console.error('Error fetching brokers:', error);
+            } catch {
+                toast.error('Could not load brokers. Please try again.');
             } finally {
                 setLoading(false);
             }

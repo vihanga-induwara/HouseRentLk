@@ -38,4 +38,7 @@ const savedSearchSchema = mongoose.Schema(
     }
 );
 
+savedSearchSchema.index({ isAlertActive: 1, 'filters.type': 1 }); // matched when a listing is approved
+savedSearchSchema.index({ user: 1, createdAt: -1 });
+
 module.exports = mongoose.model('SavedSearch', savedSearchSchema);

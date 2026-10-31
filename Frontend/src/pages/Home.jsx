@@ -1,3 +1,4 @@
+import { toast } from 'react-hot-toast';
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import API from '../utils/api';
@@ -20,8 +21,8 @@ const Home = () => {
             try {
                 const res = await API.get('/listings?limit=3');
                 setFeaturedListings(res.data.data || []);
-            } catch (error) {
-                console.error("Failed to fetch featured listings", error);
+            } catch {
+                toast.error('Could not load listings. Please refresh the page.');
             } finally {
                 setLoading(false);
             }

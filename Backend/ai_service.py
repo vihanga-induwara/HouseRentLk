@@ -32,7 +32,6 @@ knowledge_base = {
         "It has good schools and hospitals for families.",
         "It is connected to Colombo, so commuting is easy."
     ],
-    # ... (you can keep ALL the other entries you had – I shortened it here for clarity)
     "boralesgamuwa": [
         "Boralesgamuwa has lakes and parks.",
         "It offers homes and schools.",

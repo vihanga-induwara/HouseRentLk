@@ -1,42 +1,47 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Layout from './components/Layout';
 import Home from './pages/Home';
-import Browse from './pages/Browse';
-import ListingDetail from './pages/ListingDetail';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import Profile from './pages/Profile';
-import AdminDashboard from './pages/AdminDashboard';
-import PostAd from './pages/PostAd';
-import Favorites from './pages/Favorites';
-import MyListings from './pages/MyListings';
-import EditListing from './pages/EditListing';
-import Inbox from './pages/Inbox';
-import CompareListings from './pages/CompareListings';
-import OwnerLeadCRM from './pages/OwnerLeadCRM';
-import AdminUserEdit from './pages/AdminUserEdit';
-import AdminScrapingPanel from './pages/AdminScrapingPanel';
-import AdminScrapedListings from './pages/AdminScrapedListings';
-import AdminMarketReport from './pages/AdminMarketReport';
-import AdminScrapingSettings from './pages/AdminScrapingSettings';
-import Brokers from './pages/Brokers';
-import BrokerProfile from './pages/BrokerProfile';
-import RentBudgetPlannerPage from './pages/RentBudgetPlannerPage';
-import FAQ from './pages/FAQ';
-import PrivacyPolicy from './pages/PrivacyPolicy';
-import TermsOfService from './pages/TermsOfService';
-import SafetyTips from './pages/SafetyTips';
-import AboutUs from './pages/AboutUs';
-import Contact from './pages/Contact';
-import NotFound from './pages/NotFound';
-import ForgotPassword from './pages/ForgotPassword';
-import ResetPassword from './pages/ResetPassword';
-import VerifyEmail from './pages/VerifyEmail';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { Toaster } from 'react-hot-toast';
-
 import ProtectedRoute from './components/ProtectedRoute';
+import PageLoader from './components/PageLoader';
+
+// Pages are code-split so the home page does not download admin, map or chart code
+const Browse = lazy(() => import('./pages/Browse'));
+const ListingDetail = lazy(() => import('./pages/ListingDetail'));
+const Login = lazy(() => import('./pages/Login'));
+const Register = lazy(() => import('./pages/Register'));
+const Profile = lazy(() => import('./pages/Profile'));
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+const PostAd = lazy(() => import('./pages/PostAd'));
+const Favorites = lazy(() => import('./pages/Favorites'));
+const MyListings = lazy(() => import('./pages/MyListings'));
+const EditListing = lazy(() => import('./pages/EditListing'));
+const Inbox = lazy(() => import('./pages/Inbox'));
+const CompareListings = lazy(() => import('./pages/CompareListings'));
+const OwnerLeadCRM = lazy(() => import('./pages/OwnerLeadCRM'));
+const AdminUserEdit = lazy(() => import('./pages/AdminUserEdit'));
+const AdminScrapingPanel = lazy(() => import('./pages/AdminScrapingPanel'));
+const AdminScrapedListings = lazy(() => import('./pages/AdminScrapedListings'));
+const AdminMarketReport = lazy(() => import('./pages/AdminMarketReport'));
+const AdminScrapingSettings = lazy(() => import('./pages/AdminScrapingSettings'));
+const Brokers = lazy(() => import('./pages/Brokers'));
+const BrokerProfile = lazy(() => import('./pages/BrokerProfile'));
+const RentBudgetPlannerPage = lazy(() => import('./pages/RentBudgetPlannerPage'));
+const FAQ = lazy(() => import('./pages/FAQ'));
+const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
+const TermsOfService = lazy(() => import('./pages/TermsOfService'));
+const SafetyTips = lazy(() => import('./pages/SafetyTips'));
+const AboutUs = lazy(() => import('./pages/AboutUs'));
+const Contact = lazy(() => import('./pages/Contact'));
+const NotFound = lazy(() => import('./pages/NotFound'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
+const ResetPassword = lazy(() => import('./pages/ResetPassword'));
+const VerifyEmail = lazy(() => import('./pages/VerifyEmail'));
+
+const ADMIN = ['admin'];
 
 function App() {
   return (
@@ -45,46 +50,48 @@ function App() {
         <Router>
           <Layout>
             <Toaster position="top-center" toastOptions={{ duration: 3000 }} />
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/browse" element={<Browse />} />
-              <Route path="/listings/:id" element={<ListingDetail />} />
-              <Route path="/compare" element={<CompareListings />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
-              <Route path="/reset-password/:token" element={<ResetPassword />} />
-              <Route path="/verify-email/:token" element={<VerifyEmail />} />
-              <Route path="/brokers" element={<Brokers />} />
-              <Route path="/brokers/:id" element={<BrokerProfile />} />
-              <Route path="/rent-planner" element={<RentBudgetPlannerPage />} />
-              <Route path="/faq" element={<FAQ />} />
-              <Route path="/privacy" element={<PrivacyPolicy />} />
-              <Route path="/terms" element={<TermsOfService />} />
-              <Route path="/safety" element={<SafetyTips />} />
-              <Route path="/about" element={<AboutUs />} />
-              <Route path="/contact" element={<Contact />} />
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/browse" element={<Browse />} />
+                <Route path="/listings/:id" element={<ListingDetail />} />
+                <Route path="/compare" element={<CompareListings />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/reset-password/:token" element={<ResetPassword />} />
+                <Route path="/verify-email/:token" element={<VerifyEmail />} />
+                <Route path="/brokers" element={<Brokers />} />
+                <Route path="/brokers/:id" element={<BrokerProfile />} />
+                <Route path="/rent-planner" element={<RentBudgetPlannerPage />} />
+                <Route path="/faq" element={<FAQ />} />
+                <Route path="/privacy" element={<PrivacyPolicy />} />
+                <Route path="/terms" element={<TermsOfService />} />
+                <Route path="/safety" element={<SafetyTips />} />
+                <Route path="/about" element={<AboutUs />} />
+                <Route path="/contact" element={<Contact />} />
 
-              {/* Protected Routes */}
-              <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-              <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
-              <Route path="/post-ad" element={<ProtectedRoute><PostAd /></ProtectedRoute>} />
-              <Route path="/favorites" element={<ProtectedRoute><Favorites /></ProtectedRoute>} />
-              <Route path="/my-listings" element={<ProtectedRoute><MyListings /></ProtectedRoute>} />
-              <Route path="/edit-listing/:id" element={<ProtectedRoute><EditListing /></ProtectedRoute>} />
-              <Route path="/inbox" element={<ProtectedRoute><Inbox /></ProtectedRoute>} />
-              <Route path="/owner/leads" element={<ProtectedRoute><OwnerLeadCRM /></ProtectedRoute>} />
-              <Route path="/admin/users/:id" element={<ProtectedRoute><AdminUserEdit /></ProtectedRoute>} />
+                {/* Protected Routes */}
+                <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+                <Route path="/post-ad" element={<ProtectedRoute><PostAd /></ProtectedRoute>} />
+                <Route path="/favorites" element={<ProtectedRoute><Favorites /></ProtectedRoute>} />
+                <Route path="/my-listings" element={<ProtectedRoute><MyListings /></ProtectedRoute>} />
+                <Route path="/edit-listing/:id" element={<ProtectedRoute><EditListing /></ProtectedRoute>} />
+                <Route path="/inbox" element={<ProtectedRoute><Inbox /></ProtectedRoute>} />
+                <Route path="/owner/leads" element={<ProtectedRoute><OwnerLeadCRM /></ProtectedRoute>} />
 
-              {/* Scraping Routes */}
-              <Route path="/admin/scraping" element={<ProtectedRoute><AdminScrapingPanel /></ProtectedRoute>} />
-              <Route path="/admin/scraping/listings" element={<ProtectedRoute><AdminScrapedListings /></ProtectedRoute>} />
-              <Route path="/admin/scraping/market" element={<ProtectedRoute><AdminMarketReport /></ProtectedRoute>} />
-              <Route path="/admin/scraping/settings" element={<ProtectedRoute><AdminScrapingSettings /></ProtectedRoute>} />
+                {/* Admin Routes */}
+                <Route path="/admin" element={<ProtectedRoute roles={ADMIN}><AdminDashboard /></ProtectedRoute>} />
+                <Route path="/admin/users/:id" element={<ProtectedRoute roles={ADMIN}><AdminUserEdit /></ProtectedRoute>} />
+                <Route path="/admin/scraping" element={<ProtectedRoute roles={ADMIN}><AdminScrapingPanel /></ProtectedRoute>} />
+                <Route path="/admin/scraping/listings" element={<ProtectedRoute roles={ADMIN}><AdminScrapedListings /></ProtectedRoute>} />
+                <Route path="/admin/scraping/market" element={<ProtectedRoute roles={ADMIN}><AdminMarketReport /></ProtectedRoute>} />
+                <Route path="/admin/scraping/settings" element={<ProtectedRoute roles={ADMIN}><AdminScrapingSettings /></ProtectedRoute>} />
 
-              {/* 404 Route */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+                {/* 404 Route */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
           </Layout>
         </Router>
       </AuthProvider>

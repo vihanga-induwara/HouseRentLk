@@ -1,3 +1,4 @@
+import { toast } from 'react-hot-toast';
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { User, ShieldCheck, Phone, Mail, MapPin, Calendar, LayoutGrid, List, ArrowLeft, Bell } from 'lucide-react';
@@ -22,8 +23,8 @@ const BrokerProfile = () => {
                 ]);
                 setBroker(profileRes.data.data);
                 setListings(listingsRes.data.data);
-            } catch (error) {
-                console.error('Error fetching broker profile:', error);
+            } catch {
+                toast.error('Could not load this profile.');
             } finally {
                 setLoading(false);
             }

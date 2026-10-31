@@ -36,7 +36,7 @@ const AdminScrapingPanel = () => {
     useEffect(() => {
         if (!user || user.role !== 'admin') { navigate('/'); return; }
         fetchAll();
-    }, [user]);
+    }, [user, navigate]);
 
     const fetchAll = async () => {
         setIsLoading(true);

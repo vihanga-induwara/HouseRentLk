@@ -1,22 +1,27 @@
-import React, { useState, useEffect } from 'react';
-import { Home, Facebook, Twitter, Instagram, Mail, Phone, MapPin } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Home, Facebook, Twitter, Instagram, Linkedin, Mail, Phone, MapPin } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import API from '../utils/api';
+
+const SOCIAL_ICONS = { facebook: Facebook, twitter: Twitter, instagram: Instagram, linkedin: Linkedin };
 
 const Footer = () => {
     const [settings, setSettings] = useState(null);
 
     useEffect(() => {
-        const fetchSettings = async () => {
-            try {
-                const { data } = await API.get('/settings');
-                setSettings(data);
-            } catch (error) {
-                console.error("Failed to fetch footer settings", error);
-            }
-        };
-        fetchSettings();
+        API.get('/settings')
+            .then(({ data }) => setSettings(data))
+            .catch(() => setSettings(null)); // footer simply hides contact details
     }, []);
+
+    // Only links an admin has configured in Settings are shown
+    const socialLinks = Object.entries(settings?.socialLinks || {})
+        .filter(([network, url]) => SOCIAL_ICONS[network] && /^https?:\/\//.test(url || ''));
+    const contactItems = [
+        { icon: MapPin, value: settings?.contactAddress },
+        { icon: Phone, value: settings?.contactPhone, href: settings?.contactPhone && `tel:${settings.contactPhone.replace(/\s/g, '')}` },
+        { icon: Mail, value: settings?.contactEmail, href: settings?.contactEmail && `mailto:${settings.contactEmail}` },
+    ].filter(item => item.value);
 
     return (
         <footer className="bg-slate-900 text-slate-300">
@@ -31,11 +36,18 @@ const Footer = () => {
                         <p className="text-sm text-slate-400 mb-4">
                             Connecting house owners and renters in Sri Lanka with trust and transparency.
                         </p>
-                        <div className="flex space-x-4">
-                            <a href="#" className="hover:text-white transition-colors"><Facebook className="h-5 w-5" /></a>
-                            <a href="#" className="hover:text-white transition-colors"><Twitter className="h-5 w-5" /></a>
-                            <a href="#" className="hover:text-white transition-colors"><Instagram className="h-5 w-5" /></a>
-                        </div>
+                        {socialLinks.length > 0 && (
+                            <div className="flex space-x-4">
+                                {socialLinks.map(([network, url]) => {
+                                    const Icon = SOCIAL_ICONS[network];
+                                    return (
+                                        <a key={network} href={url} target="_blank" rel="noopener noreferrer" aria-label={network} className="hover:text-white transition-colors">
+                                            <Icon className="h-5 w-5" />
+                                        </a>
+                                    );
+                                })}
+                            </div>
+                        )}
                     </div>
 
                     {/* Quick Links */}
@@ -64,17 +76,14 @@ const Footer = () => {
                     <div>
                         <h3 className="text-white font-semibold mb-4">Contact Us</h3>
                         <ul className="space-y-2 text-sm">
-                            <li className="flex items-start gap-2">
-                                <MapPin className="h-5 w-5 text-primary-500 shrink-0" />
-                                <span>{settings?.contactAddress || '123 Main Street, Colombo 03, Sri Lanka'}</span>
-                            </li>
-                            <li className="flex items-center gap-2">
-                                <Phone className="h-5 w-5 text-primary-500 shrink-0" />
-                                <span>{settings?.contactPhone || '+94 11 234 5678'}</span>
-                            </li>
-                            <li className="flex items-center gap-2">
-                                <Mail className="h-5 w-5 text-primary-500 shrink-0" />
-                                <span>{settings?.contactEmail || 'support@houserentlk.com'}</span>
+                            {contactItems.map(({ icon: Icon, value, href }) => (
+                                <li key={value} className="flex items-start gap-2">
+                                    <Icon className="h-5 w-5 text-primary-500 shrink-0" />
+                                    {href ? <a href={href} className="hover:text-white">{value}</a> : <span>{value}</span>}
+                                </li>
+                            ))}
+                            <li>
+                                <Link to="/contact" className="text-primary-400 hover:text-white">Send us a message</Link>
                             </li>
                         </ul>
                     </div>

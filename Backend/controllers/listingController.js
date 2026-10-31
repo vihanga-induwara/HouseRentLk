@@ -11,6 +11,7 @@ const User = require('../models/User');
 const SavedSearch = require('../models/SavedSearch');
 const { createNotification } = require('./notificationController');
 const aiService = require('../services/aiService');
+const { adminPage } = require('../utils/pagination');
 
 const LISTING_TTL_MS = 30 * 24 * 60 * 60 * 1000; // listings expire after 30 days
 const MAX_PAGE_SIZE = 50;
@@ -299,7 +300,13 @@ const deleteListing = asyncHandler(async (req, res) => {
 // @route   GET /api/admin/listings
 // @access  Private (Admin)
 const getAdminListings = asyncHandler(async (req, res) => {
-    const listings = await Listing.find().populate('owner', 'name email');
+    const { limit, skip } = adminPage(req.query);
+    const filter = req.query.status ? { status: String(req.query.status) } : {};
+    const [listings, total] = await Promise.all([
+        Listing.find(filter).populate('owner', 'name email').sort({ createdAt: -1 }).skip(skip).limit(limit),
+        Listing.countDocuments(filter),
+    ]);
+    res.set('X-Total-Count', String(total));
     res.status(200).json(listings);
 });
 

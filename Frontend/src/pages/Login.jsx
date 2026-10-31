@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Input from '../components/Input';
 import Button from '../components/Button';
 import { LogIn } from 'lucide-react';
@@ -11,6 +11,7 @@ const Login = () => {
     const [isLoading, setIsLoading] = useState(false);
 
     const navigate = useNavigate();
+    const location = useLocation();
     const { login } = useAuth();
 
     const handleSubmit = async (e) => {
@@ -22,8 +23,9 @@ const Login = () => {
         setIsLoading(false);
 
         if (result.success) {
-            // Role-based redirection
-            navigate(result.user.role === 'admin' ? '/admin' : '/');
+            // Back to the page that required login, otherwise role-based default
+            const from = location.state?.from;
+            navigate(from || (result.user.role === 'admin' ? '/admin' : '/'), { replace: true });
         }
     };
 

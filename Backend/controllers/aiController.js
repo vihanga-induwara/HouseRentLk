@@ -77,19 +77,33 @@ const getListingInsights = asyncHandler(async (req, res) => {
     const favoriteCount = await Favorite.countDocuments({ listingId: listing._id, removed: false });
     const inquiryCount = await Inquiry.countDocuments({ listing: listing._id });
 
-    // Get peer statistics (same town + type)
-    const peers = await Listing.find({
-        'location.town': listing.location.town,
-        type: listing.type,
-        _id: { $ne: listing._id },
-        status: 'approved'
-    });
+    // Peer statistics (same town + type), computed in the database
+    const [peers] = await Listing.aggregate([
+        {
+            $match: {
+                'location.town': listing.location.town,
+                type: listing.type,
+                _id: { $ne: listing._id },
+                status: 'approved'
+            }
+        },
+        {
+            $group: {
+                _id: null,
+                count: { $sum: 1 },
+                avgViews: { $avg: { $ifNull: ['$views', 0] } },
+                avgImages: { $avg: { $size: { $ifNull: ['$images', []] } } },
+                avgPrice: { $avg: '$price' },
+            }
+        },
+    ]);
 
+    // Without peers, compare against the listing itself rather than invented numbers
     const peerStats = {
-        count: peers.length,
-        avgViews: peers.length > 0 ? peers.reduce((sum, p) => sum + (p.views || 0), 0) / peers.length : 50,
-        avgImages: peers.length > 0 ? peers.reduce((sum, p) => sum + (p.images?.length || 0), 0) / peers.length : 4,
-        avgPrice: peers.length > 0 ? peers.reduce((sum, p) => sum + (p.price || 0), 0) / peers.length : 40000
+        count: peers?.count || 0,
+        avgViews: peers?.avgViews ?? (listing.views || 0),
+        avgImages: peers?.avgImages ?? (listing.images?.length || 0),
+        avgPrice: peers?.avgPrice ?? listing.price,
     };
 
     const result = await aiService.executeScript('performance_analyzer.py', {

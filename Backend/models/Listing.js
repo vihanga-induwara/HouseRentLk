@@ -177,6 +177,10 @@ listingSchema.set('toObject', { virtuals: true });
 
 listingSchema.index({ 'location.coordinates': '2dsphere' });
 listingSchema.index({ status: 1, type: 1, price: 1 }); // Optimize common search filters
+listingSchema.index({ status: 1, 'location.town': 1, type: 1 }); // town pages, similar listings, price fairness
+listingSchema.index({ status: 1, expiresAt: 1 }); // public listing query + expiry scheduler
+listingSchema.index({ status: 1, isFeatured: -1, createdAt: -1 }); // default browse sort
+listingSchema.index({ owner: 1, createdAt: -1 }); // My Listings, admin user details
 
 
 module.exports = mongoose.model('Listing', listingSchema);

@@ -22,7 +22,7 @@ const AdminMarketReport = () => {
     useEffect(() => {
         if (!user || user.role !== 'admin') { navigate('/'); return; }
         fetchData();
-    }, [user]);
+    }, [user, navigate]);
 
     const fetchData = async () => {
         setIsLoading(true);

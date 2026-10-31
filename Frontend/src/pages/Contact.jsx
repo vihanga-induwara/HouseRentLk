@@ -71,17 +71,17 @@ const Contact = () => {
                             <div className="p-6 bg-white dark:bg-slate-800 rounded-[2rem] border border-slate-100 dark:border-slate-700 shadow-xl shadow-slate-200/50 dark:shadow-none">
                                 <Mail className="h-6 w-6 text-primary-500 mb-4" />
                                 <h3 className="font-black text-slate-900 dark:text-white mb-1 italic">Email Us</h3>
-                                <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{settings?.contactEmail || 'info@houserent.lk'}</p>
+                                <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{settings?.contactEmail || 'Use the form on this page'}</p>
                             </div>
                             <div className="p-6 bg-white dark:bg-slate-800 rounded-[2rem] border border-slate-100 dark:border-slate-700 shadow-xl shadow-slate-200/50 dark:shadow-none">
                                 <Phone className="h-6 w-6 text-primary-500 mb-4" />
                                 <h3 className="font-black text-slate-900 dark:text-white mb-1 italic">Call Us</h3>
-                                <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{settings?.contactPhone || '+94 77 123 4567'}</p>
+                                <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{settings?.contactPhone || 'Not available yet'}</p>
                             </div>
                             <div className="p-6 bg-white dark:bg-slate-800 rounded-[2rem] border border-slate-100 dark:border-slate-700 shadow-xl shadow-slate-200/50 dark:shadow-none sm:col-span-2">
                                 <MapPin className="h-6 w-6 text-primary-500 mb-4" />
                                 <h3 className="font-black text-slate-900 dark:text-white mb-1 italic">Visit Our Office</h3>
-                                <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{settings?.contactAddress || '123 Galle Road, Colombo 03, Sri Lanka'}</p>
+                                <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{settings?.contactAddress || 'Online only'}</p>
                             </div>
                         </div>
 
@@ -89,7 +89,7 @@ const Contact = () => {
                             <Clock className="h-6 w-6 text-primary-400 shrink-0" />
                             <div>
                                 <h4 className="font-black italic text-sm">Working Hours</h4>
-                                <p className="text-xs text-slate-400 font-medium">{settings?.officeHours || 'Mon - Fri: 9:00 AM - 6:00 PM'}</p>
+                                <p className="text-xs text-slate-400 font-medium">{settings?.officeHours || 'We usually reply within one working day'}</p>
                             </div>
                         </div>
                     </div>

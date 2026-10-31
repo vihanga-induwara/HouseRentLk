@@ -28,7 +28,7 @@ const AdminScrapingSettings = () => {
     useEffect(() => {
         if (!user || user.role !== 'admin') { navigate('/'); return; }
         fetchSettings();
-    }, [user]);
+    }, [user, navigate]);
 
     const fetchSettings = async () => {
         setIsLoading(true);

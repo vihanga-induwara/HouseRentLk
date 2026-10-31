@@ -10,6 +10,7 @@ const Notification = require('../models/Notification');
 const SavedSearch = require('../models/SavedSearch');
 const Session = require('../models/Session');
 const BudgetPlan = require('../models/BudgetPlan');
+const { adminPage } = require('../utils/pagination');
 
 // @desc    Get all users
 // @route   GET /api/admin/users
@@ -33,7 +34,12 @@ const getUsers = asyncHandler(async (req, res) => {
         ];
     }
 
-    const users = await User.find(query).select('-password').sort({ createdAt: -1 });
+    const { limit, skip } = adminPage(req.query);
+    const [users, total] = await Promise.all([
+        User.find(query).select('-password').sort({ createdAt: -1 }).skip(skip).limit(limit),
+        User.countDocuments(query),
+    ]);
+    res.set('X-Total-Count', String(total));
     res.status(200).json(users);
 });
 
@@ -210,10 +216,17 @@ const getStats = asyncHandler(async (req, res) => {
 // @route   GET /api/admin/reports
 // @access  Private (Admin)
 const getReports = asyncHandler(async (req, res) => {
-    const reports = await Report.find()
-        .populate('reporter', 'name email')
-        .populate('listing', 'title images price status')
-        .sort({ createdAt: -1 });
+    const { limit, skip } = adminPage(req.query);
+    const [reports, total] = await Promise.all([
+        Report.find()
+            .populate('reporter', 'name email')
+            .populate('listing', 'title images price status')
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit),
+        Report.countDocuments(),
+    ]);
+    res.set('X-Total-Count', String(total));
     res.status(200).json(reports);
 });
 

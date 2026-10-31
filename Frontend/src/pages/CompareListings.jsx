@@ -1,3 +1,4 @@
+import { toast } from 'react-hot-toast';
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import API from '../utils/api';
@@ -40,8 +41,8 @@ const CompareListings = () => {
                         setAiLoading(false);
                     }
                 }
-            } catch (error) {
-                console.error("Comparison fetch failed", error);
+            } catch {
+                toast.error('Could not load the listings to compare.');
             } finally {
                 setLoading(false);
             }
